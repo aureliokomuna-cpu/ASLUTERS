@@ -1,0 +1,6 @@
+{
+  "name": "Tracking Pengiriman Informa Alam Sutera",
+  "description": "Dashboard internal monitoring pengiriman & instalasi furniture serta database customer Informa Alam Sutera (ALSUT).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
