@@ -19,10 +19,10 @@ export function cleanPhoneNumber(phoneStr?: string): string {
   return cleaned;
 }
 
-export type WaGreetingStyle = 'genz' | 'formal' | 'reminder_h1' | 'pickup_store';
+export type WaGreetingStyle = 'genz' | 'after_sales' | 'reminder_h1' | 'formal' | 'pickup_store';
 
 /**
- * Generate friendly, professional, Gen-Z / modern WhatsApp message
+ * Generate friendly, professional, Gen-Z / modern WhatsApp message from Informa Living World ALSUT Sales Team
  */
 export function generateWhatsAppMessage(
   item: Partial<DeliveryItem>,
@@ -40,63 +40,77 @@ export function generateWhatsAppMessage(
   const address = item.address || '-';
   const addressNotes = item.addressNotes ? ` (Patokan: ${item.addressNotes})` : '';
 
+  if (style === 'after_sales') {
+    return `Halo Kak ${customerName}! 👋✨
+
+Salam hangat dari saya, Tim Sales di *Informa Living World Alam Sutera* 🛋️
+
+Mau menanyakan terkait pesanan furnitur Kakak dengan No. Receipt *#${receiptNo}*, apakah barangnya sudah sampai dengan aman dan dapat digunakan dengan nyaman di rumah? 
+
+Kepuasan Kakak adalah prioritas kami. Jika ada hal yang ingin ditanyakan, butuh panduan penggunaan, atau ada kendala apapun, silakan kabari saya langsung di sini ya Kak, saya siap bantu. 🥰
+
+Terima kasih banyak sudah mempercayakan kebutuhan rumah Kakak di Informa Living World Alam Sutera. Have a wonderful day! ✨😊🙏`;
+  }
+
   if (style === 'reminder_h1' || item.isUrgentTomorrow) {
     return `Halo Kak ${customerName}! 👋✨
 
-Salam hangat dari Tim Delivery & Instalasi *Informa Living World Alam Sutera* 🛋️🚚
+Salam hangat dari saya, Tim Sales Kakak di *Informa Living World Alam Sutera* 🛋️
 
-Mau menginfokan nih Kak, pesanan furnitur Informa Kakak dijadwalkan untuk dikirim/dipasang *BESOK* ya:
+Saya mau menginfokan dan memastikan pesanan Kakak yang dijadwalkan untuk dikirim/dipasang *BESOK* ya:
 🧾 *No. Receipt:* #${receiptNo}
-📅 *Jadwal Pengiriman:* ${deliveryDate}
-🛠️ *Jadwal Instalasi:* ${installDate}
+📅 *Rencana Pengiriman:* ${deliveryDate}
+🛠️ *Rencana Perakitan:* ${installDate}
 📍 *Alamat:* ${address}${addressNotes}
 
-Mohon pastikan ada yang standby di lokasi ya Kak. Kalau ada request jam pengiriman atau patokan lokasi tambahan, feel free untuk kabari kami di sini ya. 
+Saya ingin memastikan proses pengantaran berjalan lancar dan produk diterima dengan aman dalam kondisi terbaik. Mohon pastikan ada yang standby di lokasi ya Kak. 
 
-Terima kasih banyak Kak ${customerName}, have a wonderful day! 😊🙏`;
+Jika ada catatan rute atau hal yang perlu saya bantu koordinasikan, feel free untuk kabari saya di chat ini ya Kak. Terima kasih banyak Kak ${customerName}! 😊🙏`;
   }
 
   if (style === 'formal') {
     return `Selamat pagi/siang Bapak/Ibu ${customerName},
 
-Perkenalkan kami dari Tim Logistik & Pengiriman *Informa Living World Alam Sutera*.
+Salam hormat dari kami, Tim Sales *Informa Living World Alam Sutera*.
 
-Sehubungan dengan pesanan Bapak/Ibu dengan nomor transaksi *#${receiptNo}*, kami ingin mengonfirmasi jadwal pengiriman dan instalasi:
-- *Jadwal Kirim:* ${deliveryDate}
-- *Jadwal Pasang:* ${installDate}
+Kami ingin mengonfirmasi dan memastikan kelancaran pesanan furnitur Bapak/Ibu dengan nomor transaksi *#${receiptNo}*:
+- *Jadwal Pengiriman:* ${deliveryDate}
+- *Jadwal Perakitan:* ${installDate}
 - *Alamat Tujuan:* ${address}${addressNotes}
 
-Apakah jadwal serta alamat pengiriman tersebut sudah sesuai? Mohon konfirmasinya agar tim armada kami dapat mempersiapkan pengiriman dengan lancar.
+Kami ingin memastikan seluruh pesanan Bapak/Ibu tiba dengan aman, dalam kondisi terbaik, dan dapat digunakan dengan maksimal. Jika ada informasi atau bantuan tambahan yang dibutuhkan, mohon tidak ragu untuk menghubungi kami kembali.
 
-Terima kasih atas kepercayaan Bapak/Ibu berbelanja di Informa Living World Alam Sutera. 🙏`;
+Terima kasih banyak atas kepercayaan Bapak/Ibu berbelanja di Informa Living World Alam Sutera. 🙏`;
   }
 
   if (style === 'pickup_store' || item.isPickupAtStore) {
     return `Halo Kak ${customerName}! 👋✨
 
-Salam hangat dari Tim Customer Care & Logistik *Informa Living World Alam Sutera* 🛋️
+Salam hangat dari saya, Tim Sales Kakak di *Informa Living World Alam Sutera* 🛋️
 
-Pesanan Kakak dengan No. Receipt *#${receiptNo}* tercatat untuk *Ambil Sendiri di Toko (Pickup Store)* di Informa Living World Alam Sutera.
+Pesanan Kakak dengan No. Receipt *#${receiptNo}* sudah tercatat untuk *Ambil Sendiri di Toko (Pickup Point)* Living World Alam Sutera.
 
-Apakah Kakak berencana mengambil pesanan hari ini? Tim kami siap membantu menyiapkan barang Kakak di Pick-up Point Toko. 
+Kira-kira Kakak berencana mengambil pesanannya hari apa/jam berapa ya? Nanti saya bantu siapkan dan koordinasikan di toko agar proses pengambilan barang Kakak lebih cepat dan praktis. 
 
-Kalau butuh info lebih lanjut, langsung balas chat ini ya Kak. Thank you and stay fabulous! ✨😊`;
+Jika ada yang perlu dibantu, langsung balas pesan ini ya Kak. Ditunggu kedatangannya di toko! ✨😊`;
   }
 
-  // Default: Friendly Gen-Z & Professional Informa Living World ALSUT
+  // Default: Friendly Gen-Z & Attentive Sales Store Advisor
   return `Halo Kak ${customerName}! 👋✨
 
-Salam hangat dari Tim Delivery & Instalasi *Informa Living World Alam Sutera* 🛋️
+Salam hangat dari saya, Tim Sales Kakak di *Informa Living World Alam Sutera* 🛋️
 
-Kami mau konfirmasi terkait pengiriman produk Informa pilihan Kakak nih:
+Saya mau bantu follow up dan memastikan pesanan produk Informa pilihan Kakak berjalan lancar nih:
 🧾 *No. Receipt:* #${receiptNo}
-📅 *Jadwal Pengiriman:* ${deliveryDate}
-🛠️ *Jadwal Instalasi:* ${installDate}
+📅 *Rencana Kirim:* ${deliveryDate}
+🛠️ *Rencana Pasang:* ${installDate}
 📍 *Alamat Pengantaran:* ${address}${addressNotes}
 
-Apakah jadwal dan alamat di atas sudah aman dan cocok untuk Kakak? 
+Saya ingin memastikan seluruh barang Kakak sampai dengan aman, dalam kondisi prima, dan dapat digunakan sebaik mungkin di rumah. 🥰
 
-Kalau ada catatan khusus atau patokan jalan tambahan, boleh banget di-reply ya Kak. Thank you so much and have an amazing day! 😊🙏✨`;
+Kalau Kakak ada titip catatan khusus, mau tanya seputar produk, atau butuh bantuan apapun, boleh banget kabari saya langsung ya Kak. 
+
+Thank you so much sudah belanja di Informa Living World Alam Sutera, have an amazing day! ✨😊🙏`;
 }
 
 /**

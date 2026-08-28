@@ -197,7 +197,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
             )}
           </div>
 
-          {/* Automated WhatsApp Chat Section (Informa Living World ALSUT) */}
+          {/* Automated WhatsApp Chat Section (Informa Living World ALSUT - Store Sales Advisor) */}
           <div className="border border-emerald-200 rounded-3xl p-4 sm:p-5 space-y-3.5 bg-gradient-to-b from-emerald-50/60 via-white to-white shadow-xs">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -206,13 +206,13 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                    Template Chat WhatsApp Otomatis
+                    Chat WhatsApp Sales Advisor Toko
                     <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
                       Informa Living World ALSUT
                     </span>
                   </h3>
                   <p className="text-[11px] text-emerald-700">
-                    Sapaan disesuaikan umur customer & profesional
+                    Follow-up kepuasan & memastikan barang diterima aman serta berfungsi baik
                   </p>
                 </div>
               </div>
@@ -231,7 +231,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
             </div>
 
             {/* Template Style Selector */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 pt-1">
               <button
                 type="button"
                 onClick={() => setWaStyle('genz')}
@@ -241,7 +241,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 font-medium'
                 }`}
               >
-                <span className="block text-[11px] font-bold">✨ Ramah / Gen-Z</span>
+                <span className="block text-[11px] font-bold">✨ Sales Follow Up</span>
                 <span className={`text-[10px] block opacity-80 ${waStyle === 'genz' ? 'text-sky-200' : 'text-slate-500'}`}>
                   "Halo Kak [Nama]"
                 </span>
@@ -249,16 +249,16 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setWaStyle('formal')}
+                onClick={() => setWaStyle('after_sales')}
                 className={`p-2 rounded-xl text-left text-xs transition-all cursor-pointer border ${
-                  waStyle === 'formal'
+                  waStyle === 'after_sales'
                     ? 'bg-[#003B73] text-white border-[#003B73] shadow-xs font-bold'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 font-medium'
                 }`}
               >
-                <span className="block text-[11px] font-bold">👔 Formal / Dewasa</span>
-                <span className={`text-[10px] block opacity-80 ${waStyle === 'formal' ? 'text-sky-200' : 'text-slate-500'}`}>
-                  "Bapak/Ibu [Nama]"
+                <span className="block text-[11px] font-bold">💖 Cek Kepuasan</span>
+                <span className={`text-[10px] block opacity-80 ${waStyle === 'after_sales' ? 'text-sky-200' : 'text-slate-500'}`}>
+                  Barang Aman & Siap Pakai
                 </span>
               </button>
 
@@ -273,7 +273,22 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               >
                 <span className="block text-[11px] font-bold">🚨 Reminder H-1</span>
                 <span className={`text-[10px] block opacity-80 ${waStyle === 'reminder_h1' ? 'text-red-100' : 'text-slate-500'}`}>
-                  Pengiriman Besok
+                  Pengantaran Besok
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWaStyle('formal')}
+                className={`p-2 rounded-xl text-left text-xs transition-all cursor-pointer border ${
+                  waStyle === 'formal'
+                    ? 'bg-[#003B73] text-white border-[#003B73] shadow-xs font-bold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 font-medium'
+                }`}
+              >
+                <span className="block text-[11px] font-bold">👔 Sapaan Formal</span>
+                <span className={`text-[10px] block opacity-80 ${waStyle === 'formal' ? 'text-sky-200' : 'text-slate-500'}`}>
+                  "Bapak/Ibu [Nama]"
                 </span>
               </button>
 
