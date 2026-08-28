@@ -184,6 +184,16 @@ export default function App() {
             </ErrorBoundary>
           )}
 
+          {/* Footnote */}
+          <footer className="mt-10 pt-5 pb-14 md:pb-6 border-t border-slate-200/80 text-center">
+            <p className="text-xs font-bold text-slate-700">
+              Dibuat oleh Anak Buah AM Fatah
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Informa Living World Alam Sutera • Sistem Monitoring Logistik & Instalasi
+            </p>
+          </footer>
+
         </main>
       </div>
 

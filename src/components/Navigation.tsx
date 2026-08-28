@@ -131,9 +131,14 @@ export const Sidebar: React.FC<NavigationProps> = ({
         <span className="text-[10px] text-slate-500 block font-bold">
           Sistem Pengiriman Informa
         </span>
-        <span className="text-[10px] text-[#003B73] font-mono font-medium">
+        <span className="text-[10px] text-[#003B73] font-mono font-medium block">
           Living World Hub v2.4
         </span>
+        <div className="mt-2 pt-2 border-t border-slate-200/60">
+          <span className="text-[10px] font-bold text-slate-600">
+            Dibuat oleh Anak Buah AM Fatah
+          </span>
+        </div>
       </div>
 
     </aside>
