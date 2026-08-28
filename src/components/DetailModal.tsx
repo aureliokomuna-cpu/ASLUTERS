@@ -17,10 +17,13 @@ import {
   ShieldCheck, 
   Store,
   AlertTriangle,
-  Navigation
+  Navigation,
+  Sparkles,
+  Send
 } from 'lucide-react';
 import { DeliveryItem, GroupedReceipt } from '../types';
 import { formatIndonesianDate, formatIndonesianDateFull } from '../utils/dateUtils';
+import { generateWhatsAppMessage, getWhatsAppUrl, WaGreetingStyle } from '../utils/whatsappUtils';
 
 interface DetailModalProps {
   item: DeliveryItem | null;
@@ -35,15 +38,28 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   onClose,
   onFocusMap
 }) => {
-  const [copied, setCopied] = useState(false);
+  const [copiedReceipt, setCopiedReceipt] = useState(false);
+  const [copiedWaText, setCopiedWaText] = useState(false);
+  const [waStyle, setWaStyle] = useState<WaGreetingStyle>(
+    item?.isUrgentTomorrow ? 'reminder_h1' : item?.isPickupAtStore ? 'pickup_store' : 'genz'
+  );
 
   if (!item) return null;
 
   const handleCopyReceipt = () => {
     navigator.clipboard.writeText(item.receiptNo);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedReceipt(true);
+    setTimeout(() => setCopiedReceipt(false), 2000);
   };
+
+  const handleCopyWaText = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedWaText(true);
+    setTimeout(() => setCopiedWaText(false), 2000);
+  };
+
+  const activeWaMessage = generateWhatsAppMessage(item, waStyle);
+  const activeWaUrl = getWhatsAppUrl(item.bestPhone, item, waStyle);
 
   const googleMapsUrl = item.hasValidCoords && item.latitude && item.longitude
     ? `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`
@@ -81,7 +97,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   className="text-sky-200 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
                   title="Salin No. Receipt"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                  {copiedReceipt ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
                 </button>
               </h2>
             </div>
@@ -178,6 +194,121 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 <span className="font-bold block text-amber-800">Catatan Khusus Pengiriman & Pasang:</span>
                 <p className="mt-0.5 font-medium">{item.shippingNotes}</p>
               </div>
+            )}
+          </div>
+
+          {/* Automated WhatsApp Chat Section (Informa Living World ALSUT) */}
+          <div className="border border-emerald-200 rounded-3xl p-4 sm:p-5 space-y-3.5 bg-gradient-to-b from-emerald-50/60 via-white to-white shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#00AA13] text-white flex items-center justify-center shadow-xs">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                    Template Chat WhatsApp Otomatis
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
+                      Informa Living World ALSUT
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-emerald-700">
+                    Sapaan disesuaikan umur customer & profesional
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleCopyWaText(activeWaMessage)}
+                  className="px-3 py-1 text-xs font-bold text-emerald-800 bg-white hover:bg-emerald-50 border border-emerald-200 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                  title="Salin Teks Pesan"
+                >
+                  {copiedWaText ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedWaText ? 'Tersalin' : 'Salin Teks'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Template Style Selector */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setWaStyle('genz')}
+                className={`p-2 rounded-xl text-left text-xs transition-all cursor-pointer border ${
+                  waStyle === 'genz'
+                    ? 'bg-[#003B73] text-white border-[#003B73] shadow-xs font-bold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 font-medium'
+                }`}
+              >
+                <span className="block text-[11px] font-bold">✨ Ramah / Gen-Z</span>
+                <span className={`text-[10px] block opacity-80 ${waStyle === 'genz' ? 'text-sky-200' : 'text-slate-500'}`}>
+                  "Halo Kak [Nama]"
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWaStyle('formal')}
+                className={`p-2 rounded-xl text-left text-xs transition-all cursor-pointer border ${
+                  waStyle === 'formal'
+                    ? 'bg-[#003B73] text-white border-[#003B73] shadow-xs font-bold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 font-medium'
+                }`}
+              >
+                <span className="block text-[11px] font-bold">👔 Formal / Dewasa</span>
+                <span className={`text-[10px] block opacity-80 ${waStyle === 'formal' ? 'text-sky-200' : 'text-slate-500'}`}>
+                  "Bapak/Ibu [Nama]"
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWaStyle('reminder_h1')}
+                className={`p-2 rounded-xl text-left text-xs transition-all cursor-pointer border ${
+                  waStyle === 'reminder_h1'
+                    ? 'bg-red-600 text-white border-red-600 shadow-xs font-bold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 font-medium'
+                }`}
+              >
+                <span className="block text-[11px] font-bold">🚨 Reminder H-1</span>
+                <span className={`text-[10px] block opacity-80 ${waStyle === 'reminder_h1' ? 'text-red-100' : 'text-slate-500'}`}>
+                  Pengiriman Besok
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWaStyle('pickup_store')}
+                className={`p-2 rounded-xl text-left text-xs transition-all cursor-pointer border ${
+                  waStyle === 'pickup_store'
+                    ? 'bg-[#003B73] text-white border-[#003B73] shadow-xs font-bold'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200 font-medium'
+                }`}
+              >
+                <span className="block text-[11px] font-bold">🏬 Ambil di Toko</span>
+                <span className={`text-[10px] block opacity-80 ${waStyle === 'pickup_store' ? 'text-sky-200' : 'text-slate-500'}`}>
+                  Pickup Point Toko
+                </span>
+              </button>
+            </div>
+
+            {/* Live Message Preview Box */}
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-800 whitespace-pre-line leading-relaxed font-sans shadow-inner max-h-48 overflow-y-auto">
+              {activeWaMessage}
+            </div>
+
+            {/* Action Bar */}
+            {activeWaUrl && (
+              <a
+                href={activeWaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 bg-[#00AA13] hover:bg-[#009110] text-white font-black text-xs sm:text-sm rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              >
+                <Send className="w-4 h-4" />
+                <span>Buka & Kirim Chat via WhatsApp</span>
+              </a>
             )}
           </div>
 
@@ -278,9 +409,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({
         <div className="p-4 sm:p-5 bg-slate-50/80 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
           
           <div className="flex items-center gap-2">
-            {item.waLink && (
+            {(activeWaUrl || item.waLink) && (
               <a
-                href={item.waLink}
+                href={activeWaUrl || item.waLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs sm:text-sm font-extrabold bg-[#00AA13] hover:bg-[#009110] text-white rounded-2xl transition-all shadow-xs"

@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import { DeliveryItem, GroupedReceipt, RawCsvRow } from '../types';
 import { calculateDeliveryStatus, calculateProgress, parseDate } from './dateUtils';
+import { getWhatsAppUrl, cleanPhoneNumber } from './whatsappUtils';
 
 export const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2H8qksXso8KEbbj8vwtkJ1KOx-5COj-zzbHFchxMB0KkpyO1-ltWonXhtBfm-QazoQ-sRA2Rym-y3/pub?gid=0&single=true&output=csv';
 
@@ -9,21 +10,9 @@ export const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2H8qks
  */
 export function formatPhoneNumberForWa(phoneStr?: string): { cleanPhone: string; waUrl: string } {
   if (!phoneStr) return { cleanPhone: '-', waUrl: '' };
-  
-  // Remove all non-digits except +
-  let cleaned = phoneStr.replace(/[^0-9+]/g, '');
+  const cleaned = cleanPhoneNumber(phoneStr);
   if (!cleaned) return { cleanPhone: phoneStr, waUrl: '' };
-
-  if (cleaned.startsWith('+62')) {
-    cleaned = cleaned.substring(1);
-  } else if (cleaned.startsWith('0')) {
-    cleaned = '62' + cleaned.substring(1);
-  } else if (cleaned.startsWith('8')) {
-    cleaned = '62' + cleaned;
-  }
-
-  const waUrl = `https://wa.me/${cleaned}?text=${encodeURIComponent('Halo Bapak/Ibu, kami dari Tim Pengiriman & Instalasi Informa Alam Sutera ingin mengonfirmasi jadwal pengiriman barang Anda.')}`;
-  return { cleanPhone: phoneStr.trim(), waUrl };
+  return { cleanPhone: phoneStr.trim(), waUrl: `https://wa.me/${cleaned}` };
 }
 
 /**
@@ -123,7 +112,7 @@ export async function fetchAndParseDeliveryData(): Promise<{
               phone,
               mobilePhone,
               bestPhone,
-              waLink: waUrl,
+              waLink: '',
               shippingNotes,
               addressNotes,
               deliveryScheduleRaw,
@@ -144,6 +133,13 @@ export async function fetchAndParseDeliveryData(): Promise<{
               progressStep: progress.step,
               progressPercent: progress.percent,
             };
+
+            // Set personalized Informa ALSUT Gen-Z friendly WhatsApp link
+            item.waLink = getWhatsAppUrl(
+              bestPhone, 
+              item, 
+              item.isUrgentTomorrow ? 'reminder_h1' : (item.isPickupAtStore ? 'pickup_store' : 'genz')
+            );
 
             items.push(item);
           });
