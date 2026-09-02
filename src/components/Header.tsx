@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Truck, 
   RefreshCw, 
@@ -11,9 +11,11 @@ import {
   Building2,
   Sparkles,
   Map,
-  ArrowRight
+  ArrowRight,
+  Activity
 } from 'lucide-react';
 import { formatIndonesianDateFull } from '../utils/dateUtils';
+import { getDailyTrafficReport } from '../utils/trafficUtils';
 
 interface HeaderProps {
   lastUpdated: Date | null;
@@ -42,6 +44,10 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const today = new Date();
+
+  const trafficData = useMemo(() => {
+    return getDailyTrafficReport(today);
+  }, [today]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,6 +171,29 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/5 text-slate-300 font-medium border border-white/10">
               <span className="w-2 h-2 rounded-full bg-slate-400"></span>
               <span>{waitingCount} Antrean</span>
+            </div>
+
+            {/* Traffic Light Status Pill */}
+            <div 
+              title={`Traffic Jabodetabek & Tangsel: ${trafficData.statusTitle}`}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold border transition-all ${
+                trafficData.overallStatus === 'RED'
+                  ? 'bg-red-500/30 text-red-200 border-red-400/50'
+                  : trafficData.overallStatus === 'YELLOW'
+                  ? 'bg-amber-500/30 text-amber-200 border-amber-400/50'
+                  : 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50'
+              }`}
+            >
+              <span className={`w-2.5 h-2.5 rounded-full ${
+                trafficData.overallStatus === 'RED'
+                  ? 'bg-red-500 shadow-[0_0_8px_#ef4444]'
+                  : trafficData.overallStatus === 'YELLOW'
+                  ? 'bg-amber-400 shadow-[0_0_8px_#facc15]'
+                  : 'bg-emerald-400 shadow-[0_0_8px_#34d399]'
+              }`}></span>
+              <span>
+                Traffic: {trafficData.overallStatus === 'RED' ? 'Macet 🔴' : trafficData.overallStatus === 'YELLOW' ? 'Padat 🟡' : 'Lancar 🟢'}
+              </span>
             </div>
 
           </div>
