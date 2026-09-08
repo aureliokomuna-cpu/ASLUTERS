@@ -1,7 +1,8 @@
 import Papa from 'papaparse';
-import { DeliveryItem, GroupedReceipt, RawCsvRow } from '../types';
+import { DeliveryItem, GroupedReceipt } from '../types';
 import { calculateDeliveryStatus, calculateProgress, parseDate } from './dateUtils';
 import { getWhatsAppUrl, cleanPhoneNumber } from './whatsappUtils';
+import { cleanCityName, CITY_CENTROIDS } from './growthUtils';
 
 export const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2H8qksXso8KEbbj8vwtkJ1KOx-5COj-zzbHFchxMB0KkpyO1-ltWonXhtBfm-QazoQ-sRA2Rym-y3/pub?gid=0&single=true&output=csv';
 
@@ -16,7 +17,7 @@ export function formatPhoneNumberForWa(phoneStr?: string): { cleanPhone: string;
 }
 
 /**
- * Fetch and parse live CSV data from Google Sheets
+ * Fetch and parse live CSV data from Google Sheets (Support Multi-Format DO ALSUT)
  */
 export async function fetchAndParseDeliveryData(): Promise<{
   items: DeliveryItem[];
@@ -35,51 +36,167 @@ export async function fetchAndParseDeliveryData(): Promise<{
   const csvText = await response.text();
 
   return new Promise((resolve, reject) => {
-    Papa.parse<RawCsvRow>(csvText, {
-      header: true,
+    Papa.parse<string[]>(csvText, {
+      header: false,
       skipEmptyLines: 'greedy',
-      transformHeader: (header) => header.trim(),
       complete: (results) => {
         try {
           const rawRows = results.data;
           const items: DeliveryItem[] = [];
           const citySet = new Set<string>();
 
-          rawRows.forEach((row, index) => {
-            const receiptNo = (row.receive_no || row['receive_no'] || '').trim();
-            const customerName = (row['NAMA CUSTOMER'] || row.NAMA_CUSTOMER || row.nama_customer || '').trim();
-            
-            // Skip totally empty ghost rows
-            if (!receiptNo && !customerName && !row.notrans) {
-              return;
+          // Process rows starting from index 1 (row 0 is header)
+          for (let index = 1; index < rawRows.length; index++) {
+            const row = rawRows[index];
+            if (!row || row.length === 0) continue;
+
+            const col0 = (row[0] || '').trim();
+            const col1 = (row[1] || '').trim();
+            const col2 = (row[2] || '').trim();
+
+            // Skip repeated header rows
+            if (col0.toLowerCase().includes('company') || col1.toLowerCase().includes('receive')) {
+              continue;
             }
 
-            const rawLt = (row.lt || '').trim();
-            const rawLg = (row.lg || '').trim();
-            const lat = parseFloat(rawLt);
-            const lng = parseFloat(rawLg);
-            
-            // Validate coords (Indonesia is roughly Lat -11 to 6, Lng 95 to 141; Tangerang / Jabodetabek ~ -6.2, 106.6)
-            const hasValidCoords = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0 && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+            const val0 = parseFloat(col0);
+            const val1 = parseFloat(col1);
 
-            const isPickupAtStore = (row.CUSTOMER_PICKUPATSTORE || '').trim() === '1';
-            const cityName = (row.city_name || 'Tangerang').trim();
-            if (cityName) {
-              citySet.add(cityName);
+            let lg = '';
+            let lt = '';
+            let companyCode = '35';
+            let receiveNo = '';
+            let transactionNo = '';
+            let transDateRaw = '';
+            let cardId = '';
+            let customerName = '';
+            let address = '';
+            let rawCity = '';
+            let phone = '';
+            let shippingNotes = '';
+            let deliveryScheduleRaw = '';
+            let installScheduleRaw = '';
+            let installerPoolId = '';
+            let installNo = '';
+            let isPickupAtStore = false;
+            let addressNotes = '';
+            let typeOrder = '';
+
+            if (val0 > 90 && val0 < 145 && val1 < 10 && val1 > -15) {
+              // Format B: Longitude & Latitude in first two columns
+              lg = col0;
+              lt = col1;
+              companyCode = col2 || '35';
+              receiveNo = (row[3] || '').trim();
+              transactionNo = (row[4] || '').trim();
+              transDateRaw = (row[5] || '').trim();
+              cardId = (row[6] || '').trim();
+              customerName = (row[7] || '').trim();
+              address = (row[8] || '').trim();
+              rawCity = (row[9] || '').trim();
+              deliveryScheduleRaw = (row[10] || '').trim();
+              shippingNotes = (row[11] || '').trim();
+              phone = (row[12] || '').trim();
+              installNo = (row[14] || '').trim();
+              isPickupAtStore = (row[15] || '').trim() === '1';
+              addressNotes = (row[16] || '').trim();
+            } else if (col2.startsWith('U35.') || col2.startsWith('35.')) {
+              // Format C: Surat Jalan inserted at index 2
+              companyCode = col0 || '35';
+              receiveNo = col1;
+              transactionNo = col2;
+              transDateRaw = (row[3] || '').trim();
+              cardId = (row[4] || '').trim();
+              customerName = (row[5] || '').trim();
+              address = [row[6], row[7]].filter(Boolean).map(s => s.trim()).join(' ');
+              rawCity = (row[8] || '').trim();
+              phone = (row[9] || row[14] || '').trim();
+              shippingNotes = (row[10] || '').trim();
+              deliveryScheduleRaw = (row[11] || '').trim();
+              installScheduleRaw = (row[12] || '').trim();
+              installerPoolId = (row[14] || '').trim();
+              lt = (row[17] || '').trim();
+              lg = (row[18] && parseFloat(row[18]) > 90) ? row[18].trim() : '';
+              isPickupAtStore = (row[19] || '').trim() === '1';
+              addressNotes = (row[21] || '').trim();
+            } else {
+              // Format A (Standard)
+              companyCode = col0 || '35';
+              receiveNo = col1;
+              transDateRaw = col2;
+              cardId = (row[3] || '').trim();
+              customerName = (row[4] || '').trim();
+              address = [row[5], row[6]].filter(Boolean).map(s => s.trim()).join(' ');
+              rawCity = (row[7] || '').trim();
+              phone = (row[8] || '').trim();
+              shippingNotes = (row[9] || '').trim();
+              deliveryScheduleRaw = (row[10] || '').trim();
+              installScheduleRaw = (row[11] || '').trim();
+              installerPoolId = (row[12] || '').trim();
+              lg = (row[14] || '').trim();
+              lt = (row[15] || '').trim();
+              installNo = (row[16] || '').trim();
+              isPickupAtStore = (row[18] || '').trim() === '1';
+              addressNotes = (row[19] || '').trim();
+              typeOrder = (row[20] || '').trim();
             }
 
-            const phone = (row.cust_phone || '').trim();
-            const mobilePhone = (row.cust_hp || '').trim();
-            const bestPhone = mobilePhone || phone || '-';
-            const { waUrl } = formatPhoneNumberForWa(bestPhone);
+            // Skip empty rows
+            if (!receiveNo && !customerName && !transactionNo) {
+              continue;
+            }
 
-            const transDateRaw = (row['TANGGAL TRANSAKSI'] || '').trim();
-            const transDate = parseDate(transDateRaw);
+            const cityName = cleanCityName(rawCity);
+            citySet.add(cityName);
 
-            const deliveryScheduleRaw = (row.JADWAL_PENGIRIMAN || '').trim();
+            // Coords calculation
+            let rawParsedLat = parseFloat(lt);
+            let rawParsedLng = parseFloat(lg);
+            let hasValidCoords = !isNaN(rawParsedLat) && !isNaN(rawParsedLng) && rawParsedLat !== 0 && rawParsedLng !== 0 && Math.abs(rawParsedLat) <= 90 && Math.abs(rawParsedLng) <= 180;
+
+            let finalLat: number | null = hasValidCoords ? rawParsedLat : null;
+            let finalLng: number | null = hasValidCoords ? rawParsedLng : null;
+
+            // If coordinates are missing or partial, use city centroid + deterministic spatial jitter
+            if (!hasValidCoords) {
+              const centroid = CITY_CENTROIDS[cityName] || CITY_CENTROIDS['Tangerang'];
+              const keySeed = `${receiveNo}_${customerName}_${index}`;
+              let hash = 0;
+              for (let i = 0; i < keySeed.length; i++) {
+                hash = (hash * 31 + keySeed.charCodeAt(i)) % 100000;
+              }
+
+              if (!isNaN(rawParsedLat) && rawParsedLat !== 0 && Math.abs(rawParsedLat) <= 90) {
+                // Real lat, estimate lng
+                finalLat = rawParsedLat;
+                const jitterLng = ((hash % 100) / 100 - 0.5) * 0.05;
+                finalLng = centroid.lng + jitterLng;
+                hasValidCoords = true;
+              } else {
+                const jitterLat = ((hash % 89) / 89 - 0.5) * 0.035;
+                const jitterLng = (((hash * 17) % 97) / 97 - 0.5) * 0.045;
+                finalLat = centroid.lat + jitterLat;
+                finalLng = centroid.lng + jitterLng;
+                hasValidCoords = true;
+              }
+            }
+
+            // Parse transaction date, with fallback to Surat Jalan if date format is odd
+            let transDate = parseDate(transDateRaw);
+            if (!transDate && transactionNo) {
+              const match = transactionNo.match(/202[4-9](\d{2})(\d{2})/);
+              if (match) {
+                const y = 2026;
+                const m = parseInt(match[1], 10) - 1;
+                const d = parseInt(match[2], 10);
+                transDate = new Date(y, m, d, 0, 0, 0, 0);
+                if (!transDateRaw) {
+                  transDateRaw = `2026-${match[1]}-${match[2]}`;
+                }
+              }
+            }
+
             const deliveryScheduleDate = parseDate(deliveryScheduleRaw);
-
-            const installScheduleRaw = (row.JADWAL_INSTALASI || '').trim();
             const installScheduleDate = parseDate(installScheduleRaw);
 
             const statusInfo = calculateDeliveryStatus(installScheduleDate, installScheduleRaw);
@@ -90,27 +207,25 @@ export async function fetchAndParseDeliveryData(): Promise<{
               installScheduleDate
             );
 
-            // Important: cust_fax frequently contains delivery instruction notes
-            const shippingNotes = (row.cust_fax || '').trim();
-            const addressNotes = (row.ADDRESS_NOTE || '').trim();
+            const bestPhone = phone || '-';
 
             const item: DeliveryItem = {
-              id: `${receiptNo || 'REC'}-${row.install_no || index}-${index}`,
-              rowIndex: index + 1,
-              latitude: hasValidCoords ? lat : null,
-              longitude: hasValidCoords ? lng : null,
+              id: `${receiveNo || 'REC'}-${installNo || index}-${index}`,
+              rowIndex: index,
+              latitude: finalLat,
+              longitude: finalLng,
               hasValidCoords,
-              companyCode: (row.company_code || 'ALSUT').trim(),
-              transactionNo: (row.notrans || '').trim(),
-              receiptNo: receiptNo || 'TANPA_NO_RECEIPT',
+              companyCode: companyCode || 'ALSUT',
+              transactionNo: transactionNo || '',
+              receiptNo: receiveNo || 'TANPA_NO_RECEIPT',
               transactionDateRaw: transDateRaw,
               transactionDate: transDate,
-              memberNo: (row['NO MEMBER'] || '').trim(),
+              memberNo: cardId || '',
               customerName: customerName || 'Customer Informa',
-              address: (row.cust_address || 'Alamat tidak tercatat').trim(),
-              cityName: cityName || 'Tangerang',
+              address: address || 'Alamat tidak tercatat',
+              cityName,
               phone,
-              mobilePhone,
+              mobilePhone: phone,
               bestPhone,
               waLink: '',
               shippingNotes,
@@ -119,11 +234,11 @@ export async function fetchAndParseDeliveryData(): Promise<{
               deliveryScheduleDate,
               installScheduleRaw,
               installScheduleDate,
-              installerPoolId: (row.installer_pool_id || '-').trim(),
-              installNo: (row.install_no || '-').trim(),
+              installerPoolId: installerPoolId || '-',
+              installNo: installNo || '-',
               isPickupAtStore,
-              typeOrder: (row.type_order || '').trim(),
-              deliveryId: (row.delivery_id || '').trim(),
+              typeOrder,
+              deliveryId: '',
 
               status: statusInfo.status,
               statusLabel: statusInfo.statusLabel,
@@ -142,7 +257,7 @@ export async function fetchAndParseDeliveryData(): Promise<{
             );
 
             items.push(item);
-          });
+          }
 
           // Group by receipt_no
           const groupedByReceipt = new Map<string, GroupedReceipt>();
@@ -181,7 +296,6 @@ export async function fetchAndParseDeliveryData(): Promise<{
               group.longitude = item.longitude;
               group.hasValidCoords = true;
             }
-            // Priority for overall status: IN_TRANSIT > WAITING_SCHEDULE > COMPLETED
             if (item.status === 'IN_TRANSIT') {
               group.overallStatus = 'IN_TRANSIT';
             } else if (item.status === 'WAITING_SCHEDULE' && group.overallStatus === 'COMPLETED') {

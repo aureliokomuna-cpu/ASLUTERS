@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { DeliveryItem, FilterOptions } from '../types';
 import { DeliveryCard } from './DeliveryCard';
-import { TrafficReportWidget } from './TrafficReportWidget';
 import { formatIndonesianDate } from '../utils/dateUtils';
 
 interface TrackingTabProps {
@@ -136,9 +135,6 @@ export const TrackingTab: React.FC<TrackingTabProps> = ({
   return (
     <div className="space-y-6">
       
-      {/* 0. Daily Traffic Light & Road Condition Report (Jabodetabek & Tangerang/Tangsel) */}
-      <TrafficReportWidget defaultExpanded={true} />
-
       {/* 1. Urgent H-1 Alert Banner */}
       {urgentH1List.length > 0 && (
         <div 

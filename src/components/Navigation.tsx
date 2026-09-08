@@ -1,7 +1,7 @@
 import React from 'react';
-import { Truck, Map, Search, PackageCheck, AlertTriangle, Layers, Building2, ChevronRight, Compass } from 'lucide-react';
+import { Truck, Map, Search, PackageCheck, AlertTriangle, Layers, Building2, ChevronRight, Compass, Car } from 'lucide-react';
 
-export type ActiveTab = 'TRACKING' | 'DATABASE' | 'SEARCH';
+export type ActiveTab = 'TRACKING' | 'DATABASE' | 'SEARCH' | 'TRAFFIC';
 
 interface NavigationProps {
   activeTab: ActiveTab;
@@ -44,6 +44,15 @@ export const Sidebar: React.FC<NavigationProps> = ({
       icon: Search,
       badge: null,
       badgeColor: '',
+      urgentBadge: null,
+    },
+    {
+      id: 'TRAFFIC' as ActiveTab,
+      label: 'Pantauan Traffic Jam',
+      subtitle: 'Jalur Jabodetabek & Tangsel',
+      icon: Car,
+      badge: 'Live',
+      badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
       urgentBadge: null,
     },
   ];
@@ -153,21 +162,21 @@ export const BottomNav: React.FC<NavigationProps> = ({
   urgentH1Count,
 }) => {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-4 py-2 shadow-2xl">
-      <div className="grid grid-cols-3 gap-2 max-w-md mx-auto">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-2 py-2 shadow-2xl">
+      <div className="grid grid-cols-4 gap-1.5 max-w-lg mx-auto">
         
         {/* Tracking Tab */}
         <button
           id="mobile-nav-tracking"
           onClick={() => onTabChange('TRACKING')}
-          className={`flex flex-col items-center justify-center py-2 px-2 rounded-2xl transition-all relative ${
+          className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all relative ${
             activeTab === 'TRACKING' 
               ? 'bg-sky-50 text-[#003B73] font-extrabold shadow-xs' 
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           {urgentH1Count > 0 && (
-            <span className="absolute top-1 right-3 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
+            <span className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
           )}
           <Truck className={`w-5 h-5 mb-0.5 ${activeTab === 'TRACKING' ? 'text-[#003B73]' : 'text-slate-400'}`} />
           <span className="text-[10px] leading-tight">Tracking ({activeCount})</span>
@@ -177,7 +186,7 @@ export const BottomNav: React.FC<NavigationProps> = ({
         <button
           id="mobile-nav-database"
           onClick={() => onTabChange('DATABASE')}
-          className={`flex flex-col items-center justify-center py-2 px-2 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all ${
             activeTab === 'DATABASE' 
               ? 'bg-sky-50 text-[#003B73] font-extrabold shadow-xs' 
               : 'text-slate-500 hover:text-slate-900'
@@ -187,11 +196,25 @@ export const BottomNav: React.FC<NavigationProps> = ({
           <span className="text-[10px] leading-tight">Database ({completedCount})</span>
         </button>
 
+        {/* Traffic Tab */}
+        <button
+          id="mobile-nav-traffic"
+          onClick={() => onTabChange('TRAFFIC')}
+          className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all ${
+            activeTab === 'TRAFFIC' 
+              ? 'bg-amber-50 text-amber-900 font-extrabold shadow-xs' 
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Car className={`w-5 h-5 mb-0.5 ${activeTab === 'TRAFFIC' ? 'text-amber-700' : 'text-slate-400'}`} />
+          <span className="text-[10px] leading-tight">Traffic Jam</span>
+        </button>
+
         {/* Search Tab */}
         <button
           id="mobile-nav-search"
           onClick={() => onTabChange('SEARCH')}
-          className={`flex flex-col items-center justify-center py-2 px-2 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all ${
             activeTab === 'SEARCH' 
               ? 'bg-sky-50 text-[#003B73] font-extrabold shadow-xs' 
               : 'text-slate-500 hover:text-slate-900'

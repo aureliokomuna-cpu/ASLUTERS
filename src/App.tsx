@@ -4,6 +4,7 @@ import { Sidebar, BottomNav, ActiveTab } from './components/Navigation';
 import { TrackingTab } from './components/TrackingTab';
 import { CustomerDatabaseTab } from './components/CustomerDatabaseTab';
 import { ReceiptSearchTab } from './components/ReceiptSearchTab';
+import { TrafficTab } from './components/TrafficTab';
 import { DetailModal } from './components/DetailModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { fetchAndParseDeliveryData } from './utils/csvParser';
@@ -87,6 +88,7 @@ export default function App() {
         completedCount={completedCount}
         urgentH1Count={urgentH1Count}
         onSelectUrgent={handleSelectUrgent}
+        onOpenTraffic={() => setActiveTab('TRAFFIC')}
       />
 
       {/* Main Layout Area */}
@@ -181,6 +183,13 @@ export default function App() {
                 initialSearchQuery={searchQuery}
                 onViewDetail={(item) => setSelectedDetailItem(item)}
               />
+            </ErrorBoundary>
+          )}
+
+          {/* Tab 4: Pantauan Traffic Jam Jabodetabek & Tangsel */}
+          {!isLoading && activeTab === 'TRAFFIC' && (
+            <ErrorBoundary fallbackTitle="Gagal memuat tab Pantauan Traffic">
+              <TrafficTab />
             </ErrorBoundary>
           )}
 

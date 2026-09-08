@@ -16,6 +16,11 @@ export interface RawCsvRow {
   company_code?: string;
   notrans?: string;
   receive_no?: string;
+  transdate?: string;
+  card_id?: string;
+  cust_name?: string;
+  cust_address1?: string;
+  cust_address2?: string;
   'TANGGAL TRANSAKSI'?: string;
   'NO MEMBER'?: string;
   'NAMA CUSTOMER'?: string;
@@ -23,17 +28,22 @@ export interface RawCsvRow {
   city_name?: string;
   cust_phone?: string;
   cust_fax?: string;
+  request_date?: string;
+  realisasi_tgl_install?: string;
   JADWAL_PENGIRIMAN?: string;
   JADWAL_INSTALASI?: string;
   cust_hp?: string;
   installer_pool_id?: string;
   install_no?: string;
+  booking_indent?: string;
   CUSTOMER_PICKUPATSTORE?: string;
   ADDRESS_NOTE?: string;
   type_order?: string;
   delivery_id?: string;
   [key: string]: string | undefined;
 }
+
+export type { AreaGrowthStat, MonthlyComparison } from './utils/growthUtils';
 
 export interface DeliveryItem {
   id: string;

@@ -28,6 +28,7 @@ interface HeaderProps {
   urgentH1Count: number;
   onSelectUrgent: () => void;
   onOpenMapTab?: () => void;
+  onOpenTraffic?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,7 +41,8 @@ export const Header: React.FC<HeaderProps> = ({
   completedCount,
   urgentH1Count,
   onSelectUrgent,
-  onOpenMapTab
+  onOpenMapTab,
+  onOpenTraffic,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const today = new Date();
@@ -174,14 +176,15 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Traffic Light Status Pill */}
-            <div 
-              title={`Traffic Jabodetabek & Tangsel: ${trafficData.statusTitle}`}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold border transition-all ${
+            <button
+              onClick={onOpenTraffic}
+              title={`Klik untuk Buka Menu Pantauan Traffic Jabodetabek & Tangsel: ${trafficData.statusTitle}`}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold border transition-all cursor-pointer hover:scale-105 active:scale-95 ${
                 trafficData.overallStatus === 'RED'
-                  ? 'bg-red-500/30 text-red-200 border-red-400/50'
+                  ? 'bg-red-500/30 text-red-200 border-red-400/50 hover:bg-red-500/40'
                   : trafficData.overallStatus === 'YELLOW'
-                  ? 'bg-amber-500/30 text-amber-200 border-amber-400/50'
-                  : 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50'
+                  ? 'bg-amber-500/30 text-amber-200 border-amber-400/50 hover:bg-amber-500/40'
+                  : 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/40'
               }`}
             >
               <span className={`w-2.5 h-2.5 rounded-full ${
@@ -194,7 +197,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span>
                 Traffic: {trafficData.overallStatus === 'RED' ? 'Macet 🔴' : trafficData.overallStatus === 'YELLOW' ? 'Padat 🟡' : 'Lancar 🟢'}
               </span>
-            </div>
+            </button>
 
           </div>
 

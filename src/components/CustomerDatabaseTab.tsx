@@ -15,7 +15,16 @@ import {
   MapPin,
   Filter,
   Calendar,
-  X
+  X,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  Sparkles
 } from 'lucide-react';
 import { DeliveryItem } from '../types';
 import { CustomerMap } from './CustomerMap';
@@ -25,6 +34,7 @@ import {
   formatMonthYearShort, 
   getTransactionMonthKey 
 } from '../utils/dateUtils';
+import { calculateMonthlyComparison, MonthlyComparison, AreaGrowthStat } from '../utils/growthUtils';
 
 interface CustomerDatabaseTabProps {
   items: DeliveryItem[];
@@ -59,6 +69,9 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'COMPLETED' | 'IN_TRANSIT' | 'WAITING_SCHEDULE'>('ALL');
   const [sortBy, setSortBy] = useState<'TRANS_DATE_DESC' | 'TRANS_DATE_ASC' | 'DATE_DESC' | 'DATE_ASC' | 'NAME_ASC' | 'RECEIPT'>('TRANS_DATE_DESC');
   const [currentPage, setCurrentPage] = useState(1);
+  const [compareTargetMonth, setCompareTargetMonth] = useState<string>('AUTO');
+  const [isGrowthSectionExpanded, setIsGrowthSectionExpanded] = useState<boolean>(true);
+  const [initialMapMode, setInitialMapMode] = useState<'DELIVERIES' | 'GROWTH'>('DELIVERIES');
 
   // Extract unique transaction months across all customer items
   const availableMonths = useMemo(() => {
@@ -187,6 +200,35 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
     if (selectedMonth === 'ALL') return null;
     return availableMonths.find((m) => m.key === selectedMonth) || null;
   }, [selectedMonth, availableMonths]);
+
+  // Target month key for MoM comparison
+  const activeCompareMonthKey = useMemo(() => {
+    if (compareTargetMonth !== 'AUTO') {
+      return compareTargetMonth;
+    }
+    if (selectedMonth !== 'ALL' && selectedMonth !== 'NO_DATE') {
+      return selectedMonth;
+    }
+    const validMonths = availableMonths.filter((m) => m.key !== 'NO_DATE');
+    return validMonths.length > 0 ? validMonths[0].key : '2026-08';
+  }, [compareTargetMonth, selectedMonth, availableMonths]);
+
+  // Executive Monthly Comparison (Growth vs Minus Growth per area)
+  const monthlyComparison = useMemo(() => {
+    return calculateMonthlyComparison(items, activeCompareMonthKey);
+  }, [items, activeCompareMonthKey]);
+
+  const handleFocusAreaOnMap = (cityName: string) => {
+    setSelectedCity(cityName);
+    setViewMode('COMBINED');
+    setInitialMapMode('GROWTH');
+    setTimeout(() => {
+      const mapElem = document.getElementById('customer-map-section');
+      if (mapElem) {
+        mapElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
 
   // Reset page when filters change
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
@@ -406,6 +448,238 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
         </div>
       </div>
 
+      {/* BAHAN PEMBANDING TIAP BULAN & ANALISIS GROWTH / MINUS WILAYAH DO ALSUT */}
+      {monthlyComparison && (
+        <div className="bg-white rounded-3xl border border-slate-200/80 gopay-shadow overflow-hidden transition-all">
+          {/* Header Bar */}
+          <div className="p-3.5 sm:p-4 bg-linear-to-r from-slate-900 via-[#003B73] to-blue-900 text-white flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-amber-300 shadow-xs">
+                <Target className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-black tracking-tight">
+                    Bahan Pembanding Tiap Bulan & Analisis Growth DO ALSUT
+                  </h3>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-2xs">
+                    Real-time MoM
+                  </span>
+                </div>
+                <p className="text-xs text-sky-100/90 mt-0.5">
+                  Bahan evaluasi tim sales store untuk melihat wilayah tumbuh vs wilayah minus growth yang perlu di-improve
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Target comparison month selector */}
+              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/15 text-xs">
+                <span className="text-sky-200 font-semibold text-[11px]">Bandingkan:</span>
+                <select
+                  value={compareTargetMonth}
+                  onChange={(e) => setCompareTargetMonth(e.target.value)}
+                  className="bg-transparent text-white font-bold text-xs focus:outline-hidden cursor-pointer"
+                >
+                  <option value="AUTO" className="text-slate-900">
+                    Otomatis ({monthlyComparison.currentMonthLabel} vs {monthlyComparison.prevMonthLabel})
+                  </option>
+                  {availableMonths.filter(m => m.key !== 'NO_DATE').map((m) => (
+                    <option key={m.key} value={m.key} className="text-slate-900">
+                      Bulan {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={() => setIsGrowthSectionExpanded(!isGrowthSectionExpanded)}
+                className="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer text-white"
+                title={isGrowthSectionExpanded ? 'Sembunyikan detail' : 'Tampilkan detail'}
+              >
+                {isGrowthSectionExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div>
+                <span className="text-slate-500 text-[11px] font-bold block">Periode Pembanding</span>
+                <span className="font-black text-slate-900">
+                  {monthlyComparison.currentMonthLabel} <span className="text-slate-400 font-normal">vs</span> {monthlyComparison.prevMonthLabel}
+                </span>
+              </div>
+              <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+              <div>
+                <span className="text-slate-500 text-[11px] font-bold block">Total Volume DO ALSUT</span>
+                <span className="font-black text-[#003B73]">
+                  {monthlyComparison.totalCurrent.toLocaleString()} DO{' '}
+                  <span className="text-slate-500 font-medium text-[11px]">
+                    (vs {monthlyComparison.totalPrev.toLocaleString()} DO)
+                  </span>
+                </span>
+              </div>
+              <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+              <div>
+                <span className="text-slate-500 text-[11px] font-bold block">Laju Pertumbuhan MoM</span>
+                <span className={`font-black inline-flex items-center gap-1 ${
+                  monthlyComparison.totalGrowthPct >= 0 ? 'text-emerald-600' : 'text-red-600'
+                }`}>
+                  {monthlyComparison.totalGrowthPct >= 0 ? (
+                    <ArrowUpRight className="w-4 h-4" />
+                  ) : (
+                    <ArrowDownRight className="w-4 h-4" />
+                  )}
+                  {monthlyComparison.totalGrowthPct >= 0 ? '+' : ''}{monthlyComparison.totalGrowthPct}%
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-red-100 text-red-700 border border-red-200">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>{monthlyComparison.decliningAreas.length} Wilayah Perlu Di-Improve</span>
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>{monthlyComparison.growingAreas.length} Wilayah Tumbuh</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Collapsible Content: Detailed Area Breakdowns */}
+          {isGrowthSectionExpanded && (
+            <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              
+              {/* Column 1: Area Perlu Di-Improve (Minus Growth) */}
+              <div className="border border-red-200/90 rounded-2xl bg-red-50/30 overflow-hidden">
+                <div className="p-3 bg-red-100/60 border-b border-red-200/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+                    <h4 className="text-xs font-black text-red-900 uppercase tracking-wider">
+                      Area Perlu Di-Improve (Minus Growth)
+                    </h4>
+                  </div>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white">
+                    {monthlyComparison.decliningAreas.length} Wilayah
+                  </span>
+                </div>
+
+                <div className="p-3 space-y-2.5 max-h-[380px] overflow-y-auto pr-1.5">
+                  {monthlyComparison.decliningAreas.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-500 bg-white rounded-xl">
+                      Tidak ada wilayah dengan minus growth pada periode ini.
+                    </div>
+                  ) : (
+                    monthlyComparison.decliningAreas.map((stat: AreaGrowthStat) => (
+                      <div
+                        key={stat.cityName}
+                        className="bg-white p-3 rounded-xl border border-red-100 shadow-2xs hover:shadow-xs transition-shadow space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-slate-900">
+                                {stat.cityName}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-red-100 text-red-700 border border-red-200">
+                                📉 {stat.growthPct}%
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">
+                              {stat.currentCount.toLocaleString()} DO vs {stat.prevCount.toLocaleString()} DO ({stat.diff} Order)
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleFocusAreaOnMap(stat.cityName)}
+                            className="px-2.5 py-1 text-[11px] font-black text-red-700 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Tampilkan wilayah ini pada peta growth"
+                          >
+                            🗺️ Peta Growth
+                          </button>
+                        </div>
+
+                        <div className="bg-red-50/70 p-2 rounded-lg border-l-3 border-red-500 text-[11px] text-slate-700 leading-snug">
+                          <strong className="text-red-700 block font-bold text-[10px] mb-0.5">
+                            💡 REKOMENDASI SALES ADVISOR:
+                          </strong>
+                          {stat.recommendation}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Column 2: Area Bertumbuh (Positive Growth) */}
+              <div className="border border-emerald-200/90 rounded-2xl bg-emerald-50/30 overflow-hidden">
+                <div className="p-3 bg-emerald-100/60 border-b border-emerald-200/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-wider">
+                      Area Bertumbuh (Positive Growth)
+                    </h4>
+                  </div>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white">
+                    {monthlyComparison.growingAreas.length} Wilayah
+                  </span>
+                </div>
+
+                <div className="p-3 space-y-2.5 max-h-[380px] overflow-y-auto pr-1.5">
+                  {monthlyComparison.growingAreas.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-500 bg-white rounded-xl">
+                      Tidak ada wilayah bertumbuh pada periode ini.
+                    </div>
+                  ) : (
+                    monthlyComparison.growingAreas.map((stat: AreaGrowthStat) => (
+                      <div
+                        key={stat.cityName}
+                        className="bg-white p-3 rounded-xl border border-emerald-100 shadow-2xs hover:shadow-xs transition-shadow space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-slate-900">
+                                {stat.cityName}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                📈 +{stat.growthPct}%
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">
+                              {stat.currentCount.toLocaleString()} DO vs {stat.prevCount.toLocaleString()} DO (+{stat.diff} Order)
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleFocusAreaOnMap(stat.cityName)}
+                            className="px-2.5 py-1 text-[11px] font-black text-emerald-800 hover:text-white bg-emerald-50 hover:bg-emerald-600 border border-emerald-200 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Tampilkan wilayah ini pada peta growth"
+                          >
+                            🗺️ Peta Growth
+                          </button>
+                        </div>
+
+                        <div className="bg-emerald-50/70 p-2 rounded-lg border-l-3 border-emerald-500 text-[11px] text-slate-700 leading-snug">
+                          <strong className="text-emerald-800 block font-bold text-[10px] mb-0.5">
+                            ⭐ TREN POSITIF:
+                          </strong>
+                          {stat.recommendation}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Main Container */}
       <div className="bg-white rounded-3xl border border-slate-200/80 gopay-shadow overflow-hidden">
         
@@ -467,7 +741,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
 
         {/* MAP SECTION: Visible in COMBINED and MAP modes */}
         {(viewMode === 'COMBINED' || viewMode === 'MAP') && (
-          <div className="p-3.5 sm:p-4 border-b border-slate-200">
+          <div id="customer-map-section" className="p-3.5 sm:p-4 border-b border-slate-200">
             <CustomerMap
               items={mapItems}
               selectedItem={selectedMapItem}
@@ -478,6 +752,8 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                 setCurrentPage(1);
               }}
               cities={cities}
+              monthlyComparison={monthlyComparison}
+              initialMode={initialMapMode}
             />
           </div>
         )}
