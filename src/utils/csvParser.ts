@@ -146,7 +146,7 @@ export async function fetchAndParseDeliveryData(): Promise<{
               continue;
             }
 
-            const cityName = cleanCityName(rawCity);
+            const cityName = cleanCityName(rawCity, address);
             citySet.add(cityName);
 
             // Coords calculation

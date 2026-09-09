@@ -34,7 +34,12 @@ import {
   formatMonthYearShort, 
   getTransactionMonthKey 
 } from '../utils/dateUtils';
-import { calculateMonthlyComparison, MonthlyComparison, AreaGrowthStat } from '../utils/growthUtils';
+import { 
+  calculateGrowthComparison, 
+  GrowthComparisonMode, 
+  MonthlyComparison, 
+  AreaGrowthStat 
+} from '../utils/growthUtils';
 
 interface CustomerDatabaseTabProps {
   items: DeliveryItem[];
@@ -69,7 +74,9 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'COMPLETED' | 'IN_TRANSIT' | 'WAITING_SCHEDULE'>('ALL');
   const [sortBy, setSortBy] = useState<'TRANS_DATE_DESC' | 'TRANS_DATE_ASC' | 'DATE_DESC' | 'DATE_ASC' | 'NAME_ASC' | 'RECEIPT'>('TRANS_DATE_DESC');
   const [currentPage, setCurrentPage] = useState(1);
-  const [compareTargetMonth, setCompareTargetMonth] = useState<string>('AUTO');
+  const [growthMode, setGrowthMode] = useState<GrowthComparisonMode>('YOY_JAN_AUG');
+  const [growthSpecificMonth, setGrowthSpecificMonth] = useState<number>(8);
+  const [growthSearchCity, setGrowthSearchCity] = useState<string>('');
   const [isGrowthSectionExpanded, setIsGrowthSectionExpanded] = useState<boolean>(true);
   const [initialMapMode, setInitialMapMode] = useState<'DELIVERIES' | 'GROWTH'>('DELIVERIES');
 

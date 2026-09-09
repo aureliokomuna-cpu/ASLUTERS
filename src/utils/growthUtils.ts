@@ -1,3 +1,5 @@
+import { CITY_MONTH_COUNTS_2025 } from '../data/baseline2025';
+
 export interface AreaGrowthStat {
   cityName: string;
   currentCount: number;
@@ -10,21 +12,31 @@ export interface AreaGrowthStat {
   recommendation: string;
 }
 
+export type GrowthComparisonMode = 
+  | 'YOY_JAN_AUG'      // Jan - Agu 2025 vs Jan - Agu 2026 (Rekomendasi Utama)
+  | 'YOY_JAN_SEP'      // Jan - Sep 2025 vs Jan - Sep 2026 (YTD Kumulatif)
+  | 'YOY_MONTH'        // Bulan Spesifik YoY (e.g. Agustus 2025 vs 2026)
+  | 'MOM_MONTH';       // Bulan ke Bulan MoM (e.g. Agustus 2026 vs Juli 2026)
+
 export interface MonthlyComparison {
-  currentMonth: string; // '2026-08'
-  currentMonthLabel: string; // 'Agustus 2026'
-  prevMonth: string; // '2026-07'
-  prevMonthLabel: string; // 'Juli 2026'
+  mode: GrowthComparisonMode;
+  currentMonth: string; // for backward compatibility
+  currentMonthLabel: string; // e.g. 'Jan - Agu 2026' or 'Agustus 2026'
+  prevMonth: string;
+  prevMonthLabel: string; // e.g. 'Jan - Agu 2025' or 'Juli 2026'
   totalCurrent: number;
   totalPrev: number;
   totalDiff: number;
   totalGrowthPct: number;
   areaStats: AreaGrowthStat[];
   growingAreas: AreaGrowthStat[];
-  decliningAreas: AreaGrowthStat[]; // Area yang perlu di-improve
+  decliningAreas: AreaGrowthStat[];
+  periodBadge: string;
+  noticeText?: string;
+  isSeptemberIncluded?: boolean;
 }
 
-// Koordinat Centroid Kota/Wilayah Distribusi DO Informa Living World Alam Sutera
+// Centroid Koordinat Kota/Wilayah Distribusi DO Informa Living World Alam Sutera
 export const CITY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   'Tangerang': { lat: -6.1783, lng: 106.6319 },
   'Tangerang Selatan': { lat: -6.2886, lng: 106.7179 },
@@ -40,59 +52,117 @@ export const CITY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   'Bekasi': { lat: -6.2383, lng: 106.9756 },
   'Serang': { lat: -6.1104, lng: 106.1640 },
   'Bandung': { lat: -6.9175, lng: 107.6191 },
+  'Karawang': { lat: -6.3051, lng: 107.3025 },
+  'Lebak': { lat: -6.5500, lng: 106.2500 },
+  'Pandeglang': { lat: -6.3084, lng: 106.1064 },
+  'Cianjur': { lat: -6.8222, lng: 107.1394 },
+  'Sukabumi kota': { lat: -6.9277, lng: 106.9299 },
+  'Surabaya': { lat: -7.2575, lng: 112.7521 },
+  'Semarang kota': { lat: -6.9667, lng: 110.4167 },
+  'Denpasar': { lat: -8.6705, lng: 115.2126 },
+  'Badung': { lat: -8.5833, lng: 115.1833 },
+  'Banyumas': { lat: -7.5144, lng: 109.2941 },
+  'Manado': { lat: 1.4748, lng: 124.8428 },
+  'Bandar Lampung': { lat: -5.4297, lng: 105.2625 },
   'Wilayah Lain': { lat: -6.2238, lng: 106.6525 },
 };
 
-export function cleanCityName(raw: string | undefined): string {
-  if (!raw) return 'Tangerang';
-  const l = raw.toLowerCase().trim();
-  if (l.includes('tangerang selatan') || l.includes('tangsel') || l.includes('living world') || l.includes('alam sutera') || l.includes('serpong')) {
+/**
+ * Standardize and clean city names based on raw city column and optional address hints
+ */
+export function cleanCityName(raw?: string, address?: string): string {
+  const combined = ((raw || '') + ' ' + (address || '')).toLowerCase().trim();
+  if (!combined) return 'Tangerang';
+
+  // 1. Tangerang Selatan (Ring 1 Alam Sutera & BSD)
+  if (
+    combined.includes('tangerang selatan') || 
+    combined.includes('tangsel') || 
+    combined.includes('living world') || 
+    combined.includes('alam sutera') || 
+    combined.includes('serpong') ||
+    combined.includes('bsd') ||
+    combined.includes('bintaro') ||
+    combined.includes('ciputat') ||
+    combined.includes('pamulang') ||
+    combined.includes('pondok aren') ||
+    combined.includes('setu')
+  ) {
     return 'Tangerang Selatan';
   }
-  if (l.includes('kab') && l.includes('tangerang')) {
+
+  // 2. Kab. Tangerang
+  if (
+    (combined.includes('kab') && combined.includes('tangerang')) ||
+    combined.includes('kelapa dua') ||
+    combined.includes('curug') ||
+    combined.includes('cikupa') ||
+    combined.includes('balaraja') ||
+    combined.includes('pasar kemis') ||
+    combined.includes('legok') ||
+    combined.includes('pagedangan') ||
+    combined.includes('teluknaga') ||
+    combined.includes('kosambi')
+  ) {
     return 'Kab. Tangerang';
   }
-  if (l.includes('tangerang')) {
+
+  // 3. Tangerang Kota
+  if (
+    combined.includes('tangerang') ||
+    combined.includes('tanggerang') ||
+    combined.includes('cipondoh') ||
+    combined.includes('karawaci') ||
+    combined.includes('ciledug') ||
+    combined.includes('pinang') ||
+    combined.includes('batuceper') ||
+    combined.includes('periuk') ||
+    combined.includes('jatiuwung') ||
+    combined.includes('larangan') ||
+    combined.includes('karang tengah')
+  ) {
     return 'Tangerang';
   }
-  if (l.includes('jakarta barat') || l.includes('jakbar')) {
+
+  // 4. DKI Jakarta Sub-areas
+  if (combined.includes('jakarta barat') || combined.includes('jakbar') || combined.includes('kebon jeruk') || combined.includes('puri') || combined.includes('cengkareng') || combined.includes('kembangan') || combined.includes('palmerah') || combined.includes('grogol') || combined.includes('kalideres')) {
     return 'Jakarta Barat';
   }
-  if (l.includes('jakarta selatan') || l.includes('jaksel')) {
+  if (combined.includes('jakarta selatan') || combined.includes('jaksel') || combined.includes('pondok indah') || combined.includes('kebayoran') || combined.includes('cilandak') || combined.includes('pesanggrahan') || combined.includes('tebet')) {
     return 'Jakarta Selatan';
   }
-  if (l.includes('jakarta utara') || l.includes('jakut')) {
+  if (combined.includes('jakarta utara') || combined.includes('jakut') || combined.includes('pik') || combined.includes('pantai indah kapuk') || combined.includes('pluit') || combined.includes('kelapa gading') || combined.includes('sunter') || combined.includes('penjaringan')) {
     return 'Jakarta Utara';
   }
-  if (l.includes('jakarta pusat') || l.includes('jakpus')) {
+  if (combined.includes('jakarta pusat') || combined.includes('jakpus') || combined.includes('menteng') || combined.includes('tanah abang') || combined.includes('senayan') || combined.includes('gambir')) {
     return 'Jakarta Pusat';
   }
-  if (l.includes('jakarta timur') || l.includes('jaktim')) {
+  if (combined.includes('jakarta timur') || combined.includes('jaktim') || combined.includes('duren sawit') || combined.includes('rawamangun') || combined.includes('cakung')) {
     return 'Jakarta Timur';
   }
-  if (l.includes('jakarta')) {
-    return 'DKI Jakarta';
-  }
-  if (l.includes('depok')) {
-    return 'Depok';
-  }
-  if (l.includes('bogor')) {
-    return 'Bogor';
-  }
-  if (l.includes('bekasi')) {
-    return 'Bekasi';
-  }
-  if (l.includes('serang') || l.includes('cilegon')) {
-    return 'Serang';
-  }
-  if (l.includes('bandung')) {
-    return 'Bandung';
+  if (combined.includes('jakarta')) {
+    return 'Jakarta Barat'; // Default Jakbar as closest Jakarta area to Alam Sutera
   }
 
-  // Format cleanly (capitalize first letter)
-  const cleaned = raw.replace(/^(kota\.|kab\.)\s*/i, '').trim();
-  if (!cleaned) return 'Tangerang';
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  // 5. Bodetabek & Banten
+  if (combined.includes('depok') || combined.includes('cinere') || combined.includes('sawangan')) return 'Depok';
+  if (combined.includes('bogor') || combined.includes('sentul') || combined.includes('cibinong')) return 'Bogor';
+  if (combined.includes('bekasi') || combined.includes('cikarang')) return 'Bekasi';
+  if (combined.includes('serang') || combined.includes('cilegon')) return 'Serang';
+  if (combined.includes('lebak') || combined.includes('rangkasbitung')) return 'Lebak';
+  if (combined.includes('pandeglang')) return 'Pandeglang';
+  if (combined.includes('karawang')) return 'Karawang';
+  if (combined.includes('bandung')) return 'Bandung';
+  if (combined.includes('cianjur')) return 'Cianjur';
+  if (combined.includes('sukabumi')) return 'Sukabumi kota';
+  if (combined.includes('surabaya')) return 'Surabaya';
+  if (combined.includes('denpasar')) return 'Denpasar';
+  if (combined.includes('badung')) return 'Badung';
+
+  // Clean raw city name
+  const rawCity = (raw || '').replace(/^(kota\.|kab\.)\s*/i, '').trim();
+  if (!rawCity || rawCity === '57' || rawCity.length < 2) return 'Tangerang';
+  return rawCity.charAt(0).toUpperCase() + rawCity.slice(1);
 }
 
 export function formatMonthLabel(monthKey: string): string {
@@ -106,153 +176,194 @@ export function formatMonthLabel(monthKey: string): string {
   return `${monthNames[idx] || month} ${year}`;
 }
 
-export function getPreviousMonthKey(monthKey: string, availableMonths: string[]): string | null {
-  if (!monthKey || monthKey === 'ALL') return null;
-  const sorted = [...availableMonths].sort();
-  const currentIndex = sorted.indexOf(monthKey);
-  if (currentIndex > 0) {
-    return sorted[currentIndex - 1];
-  }
-  return null;
-}
-
 export function getRecommendationForArea(cityName: string, status: 'GROWTH' | 'DECLINE' | 'STABLE', growthPct: number): string {
   if (status === 'DECLINE') {
-    if (cityName.includes('Tangerang') || cityName.includes('Selatan')) {
-      return `Penurunan DO ${Math.abs(growthPct).toFixed(1)}% di ring 1 ALSUT. Perlu intensifikasi follow up database cluster perumahan setempat & sounding promo Informa Living World!`;
+    if (cityName === 'Tangerang Selatan' || cityName === 'Tangerang' || cityName === 'Kab. Tangerang') {
+      return `Penurunan DO (${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%) di Ring 1 ALSUT. Perlu evaluasi door-to-door cluster baru BSD/Bintaro/Gading Serpong & aktifkan promo khusus Free Ongkir Living World!`;
     }
     if (cityName.includes('Jakarta')) {
-      return `Penurunan DO ${Math.abs(growthPct).toFixed(1)}%. Perlu edukasi kemudahan free ongkir Informa ALSUT & tawarkan katalog online furniture terbaru.`;
+      return `Penurunan DO (${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%). Reaktivasi customer loyal via WhatsApp Blast Informa Mobile App & sounding katalog promo Living World.`;
     }
-    return `Penurunan DO ${Math.abs(growthPct).toFixed(1)}%. Rekomendasi Sales: Tingkatkan kontak customer repeat order & sounding promo cashback.`;
+    return `Penurunan volume DO (${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%). Rekomendasi Sales: Follow up database customer repeat order furnitur dan tawarkan gift voucher Informa.`;
   }
   if (status === 'GROWTH') {
-    return `Pertumbuhan solid +${growthPct.toFixed(1)}%! Rekomendasi Sales: Pertahankan kepuasan customer, ajak gabung Informa Rewards & tawarkan aksesoris komplementer.`;
+    return `Pertumbuhan solid +${growthPct.toFixed(1)}%! Rekomendasi Sales: Pertahankan kepuasan customer, ajak gabung Informa Rewards & tawarkan aksesoris/home decor komplementer.`;
   }
-  return `Performa stabil (fluktuasi ${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%). Rekomendasi Sales: Jaga hubungan baik & reminder berkala.`;
+  return `Performa stabil (${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%). Rekomendasi Sales: Jaga hubungan baik pelanggan & reminder berkala service garansi instalasi.`;
 }
 
-export function calculateMonthlyComparison(
-  items: Array<{ transactionDateRaw?: string; transactionDate?: Date | null; cityName?: string }>,
-  currentMonthKey: string,
-  baselineMonthKey?: string
+/**
+ * Calculate accurate Year-over-Year (2025 vs 2026) or MoM Growth per Kota
+ */
+export function calculateGrowthComparison(
+  items: Array<{ transactionDateRaw?: string; transactionDate?: Date | null; cityName?: string; address?: string }>,
+  mode: GrowthComparisonMode = 'YOY_JAN_AUG',
+  specificMonth: number = 8 // Default to August for specific month YoY
 ): MonthlyComparison | null {
-  if (!items || items.length === 0) return null;
-
-  // Extract month keys from items
-  const monthSet = new Set<string>();
-  const monthCityCounts: Record<string, Record<string, number>> = {};
+  // Aggregate 2026 data from items per city and per month
+  const stats2026: Record<string, Record<number, number>> = {};
 
   items.forEach((item) => {
-    let mKey = '';
+    let m = 0;
+    let y = 0;
+
     if (item.transactionDate) {
-      const y = item.transactionDate.getFullYear();
-      const m = String(item.transactionDate.getMonth() + 1).padStart(2, '0');
-      mKey = `${y}-${m}`;
+      y = item.transactionDate.getFullYear();
+      m = item.transactionDate.getMonth() + 1;
     } else if (item.transactionDateRaw) {
-      const match = item.transactionDateRaw.match(/202\d[-/]\d{2}/);
+      const match = item.transactionDateRaw.match(/(202\d)[-/.](\d{1,2})/);
       if (match) {
-        mKey = match[0].replace('/', '-');
+        y = parseInt(match[1], 10);
+        m = parseInt(match[2], 10);
       }
     }
 
-    if (mKey) {
-      monthSet.add(mKey);
-      if (!monthCityCounts[mKey]) monthCityCounts[mKey] = {};
-      const city = cleanCityName(item.cityName);
-      monthCityCounts[mKey][city] = (monthCityCounts[mKey][city] || 0) + 1;
+    if (y === 2026 && m >= 1 && m <= 12) {
+      const city = cleanCityName(item.cityName, item.address);
+      if (!stats2026[city]) stats2026[city] = {};
+      stats2026[city][m] = (stats2026[city][m] || 0) + 1;
     }
   });
 
-  const sortedMonths = Array.from(monthSet).sort();
-  if (sortedMonths.length === 0) return null;
+  const stats2025 = CITY_MONTH_COUNTS_2025;
 
-  // Target month
-  let targetMonth = currentMonthKey;
-  if (!targetMonth || targetMonth === 'ALL' || !sortedMonths.includes(targetMonth)) {
-    // Default to the latest month with substantial data (e.g. August 2026 or July 2026)
-    targetMonth = sortedMonths[sortedMonths.length - 1];
-    // If the latest month is partial (e.g. September with few days), if there is a previous full month, consider it
-    if (sortedMonths.length >= 2) {
-      const latestCount = Object.values(monthCityCounts[targetMonth] || {}).reduce((a, b) => a + b, 0);
-      const prev = sortedMonths[sortedMonths.length - 2];
-      const prevCount = Object.values(monthCityCounts[prev] || {}).reduce((a, b) => a + b, 0);
-      if (latestCount < 500 && prevCount > 1000) {
-        // Target previous month as default comparison target so data is robust
-        targetMonth = prev;
-      }
+  let currentLabel = '';
+  let prevLabel = '';
+  let periodBadge = '';
+  let noticeText = '';
+  let isSeptemberIncluded = false;
+
+  const currentCityCounts: Record<string, number> = {};
+  const prevCityCounts: Record<string, number> = {};
+
+  if (mode === 'YOY_JAN_AUG') {
+    // Mode Utama: Januari - Agustus 2025 vs 2026
+    currentLabel = 'Januari - Agustus 2026';
+    prevLabel = 'Januari - Agustus 2025';
+    periodBadge = 'YoY: Jan-Agu (Data Penuh)';
+    noticeText = 'Periode Jan-Agu 2025 vs 2026 dipilih sebagai baseline utama agar data bersih dari anomali bulan September 2026 yang saat ini masih berjalan.';
+    isSeptemberIncluded = false;
+
+    // Sum 1..8
+    for (const city of Object.keys(stats2026)) {
+      let sum = 0;
+      for (let m = 1; m <= 8; m++) sum += (stats2026[city]?.[m] || 0);
+      currentCityCounts[city] = sum;
+    }
+    for (const city of Object.keys(stats2025)) {
+      let sum = 0;
+      for (let m = 1; m <= 8; m++) sum += (stats2025[city]?.[m] || 0);
+      prevCityCounts[city] = sum;
+    }
+  } else if (mode === 'YOY_JAN_SEP') {
+    // Mode YTD Kumulatif: Januari - September 2025 vs 2026
+    currentLabel = 'Januari - September 2026';
+    prevLabel = 'Januari - September 2025';
+    periodBadge = 'YoY: Jan-Sep (YTD)';
+    noticeText = 'Catatan: Data bulan September 2026 saat ini masih berjalan (cut-off transaksi tanggal 8/9 September), sehingga total transaksi September belum 1 bulan penuh.';
+    isSeptemberIncluded = true;
+
+    // Sum 1..9
+    for (const city of Object.keys(stats2026)) {
+      let sum = 0;
+      for (let m = 1; m <= 9; m++) sum += (stats2026[city]?.[m] || 0);
+      currentCityCounts[city] = sum;
+    }
+    for (const city of Object.keys(stats2025)) {
+      let sum = 0;
+      for (let m = 1; m <= 9; m++) sum += (stats2025[city]?.[m] || 0);
+      prevCityCounts[city] = sum;
+    }
+  } else if (mode === 'YOY_MONTH') {
+    // Mode YoY Bulan Spesifik (e.g. Agustus 2025 vs 2026)
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const mName = monthNames[specificMonth - 1] || `Bulan ${specificMonth}`;
+    currentLabel = `${mName} 2026`;
+    prevLabel = `${mName} 2025`;
+    periodBadge = `YoY: ${mName}`;
+    if (specificMonth === 9) {
+      noticeText = 'Catatan: Data transaksi September 2026 baru berjalan sebagian (cut-off 8 September 2026).';
+      isSeptemberIncluded = true;
+    }
+
+    for (const city of Object.keys(stats2026)) {
+      currentCityCounts[city] = stats2026[city]?.[specificMonth] || 0;
+    }
+    for (const city of Object.keys(stats2025)) {
+      prevCityCounts[city] = stats2025[city]?.[specificMonth] || 0;
+    }
+  } else {
+    // Mode MOM_MONTH: Agustus 2026 vs Juli 2026
+    currentLabel = 'Agustus 2026';
+    prevLabel = 'Juli 2026';
+    periodBadge = 'MoM: Agu vs Jul 2026';
+    noticeText = 'Perbandingan Month-over-Month (Bulan ke Bulan) tahun 2026.';
+
+    for (const city of Object.keys(stats2026)) {
+      currentCityCounts[city] = stats2026[city]?.[8] || 0;
+      prevCityCounts[city] = stats2026[city]?.[7] || 0;
     }
   }
 
-  // Previous month
-  let prevMonth = baselineMonthKey;
-  if (!prevMonth || !sortedMonths.includes(prevMonth)) {
-    const targetIdx = sortedMonths.indexOf(targetMonth);
-    if (targetIdx > 0) {
-      prevMonth = sortedMonths[targetIdx - 1];
-    } else if (sortedMonths.length > 1) {
-      prevMonth = sortedMonths[1];
-    } else {
-      prevMonth = targetMonth;
-    }
-  }
-
-  const currentCounts = monthCityCounts[targetMonth] || {};
-  const prevCounts = monthCityCounts[prevMonth] || {};
-
-  const allCities = Array.from(new Set([...Object.keys(currentCounts), ...Object.keys(prevCounts)]));
+  // Combine all cities
+  const allCities = Array.from(new Set([...Object.keys(currentCityCounts), ...Object.keys(prevCityCounts)]));
 
   let totalCurrent = 0;
   let totalPrev = 0;
 
-  const areaStats: AreaGrowthStat[] = allCities.map((cityName) => {
-    const curr = currentCounts[cityName] || 0;
-    const prev = prevCounts[cityName] || 0;
-    totalCurrent += curr;
-    totalPrev += prev;
+  const areaStats: AreaGrowthStat[] = allCities
+    .map((cityName) => {
+      const curr = currentCityCounts[cityName] || 0;
+      const prev = prevCityCounts[cityName] || 0;
+      totalCurrent += curr;
+      totalPrev += prev;
 
-    const diff = curr - prev;
-    let growthPct = 0;
-    if (prev > 0) {
-      growthPct = ((curr - prev) / prev) * 100;
-    } else if (curr > 0) {
-      growthPct = 100;
-    }
+      const diff = curr - prev;
+      let growthPct = 0;
+      if (prev > 0) {
+        growthPct = ((curr - prev) / prev) * 100;
+      } else if (curr > 0) {
+        growthPct = 100;
+      }
 
-    let status: 'GROWTH' | 'DECLINE' | 'STABLE' = 'STABLE';
-    if (growthPct > 2) status = 'GROWTH';
-    else if (growthPct < -2) status = 'DECLINE';
+      let status: 'GROWTH' | 'DECLINE' | 'STABLE' = 'STABLE';
+      if (growthPct >= 1.0) status = 'GROWTH';
+      else if (growthPct <= -1.0) status = 'DECLINE';
 
-    // Get centroid
-    const centroid = CITY_CENTROIDS[cityName] || CITY_CENTROIDS['Wilayah Lain'];
+      const centroid = CITY_CENTROIDS[cityName] || CITY_CENTROIDS['Wilayah Lain'];
 
-    return {
-      cityName,
-      currentCount: curr,
-      prevCount: prev,
-      diff,
-      growthPct: Math.round(growthPct * 10) / 10,
-      status,
-      lat: centroid.lat,
-      lng: centroid.lng,
-      recommendation: getRecommendationForArea(cityName, status, growthPct),
-    };
-  });
+      return {
+        cityName,
+        currentCount: curr,
+        prevCount: prev,
+        diff,
+        growthPct: Math.round(growthPct * 10) / 10,
+        status,
+        lat: centroid.lat,
+        lng: centroid.lng,
+        recommendation: getRecommendationForArea(cityName, status, growthPct),
+      };
+    })
+    .filter((a) => a.currentCount > 0 || a.prevCount > 0);
 
-  // Sort area stats by volume current
+  // Sort by highest volume currently
   areaStats.sort((a, b) => b.currentCount - a.currentCount);
 
   const totalDiff = totalCurrent - totalPrev;
   const totalGrowthPct = totalPrev > 0 ? Math.round(((totalDiff / totalPrev) * 100) * 10) / 10 : 0;
 
   const growingAreas = areaStats.filter((a) => a.status === 'GROWTH').sort((a, b) => b.growthPct - a.growthPct);
-  const decliningAreas = areaStats.filter((a) => a.status === 'DECLINE').sort((a, b) => a.growthPct - b.growthPct); // Most negative first
+  const decliningAreas = areaStats.filter((a) => a.status === 'DECLINE').sort((a, b) => a.growthPct - b.growthPct);
 
   return {
-    currentMonth: targetMonth,
-    currentMonthLabel: formatMonthLabel(targetMonth),
-    prevMonth,
-    prevMonthLabel: formatMonthLabel(prevMonth),
+    mode,
+    currentMonth: currentLabel,
+    currentMonthLabel: currentLabel,
+    prevMonth: prevLabel,
+    prevMonthLabel: prevLabel,
     totalCurrent,
     totalPrev,
     totalDiff,
@@ -260,5 +371,19 @@ export function calculateMonthlyComparison(
     areaStats,
     growingAreas,
     decliningAreas,
+    periodBadge,
+    noticeText,
+    isSeptemberIncluded,
   };
+}
+
+/**
+ * Backward compatibility wrapper for existing component calls
+ */
+export function calculateMonthlyComparison(
+  items: Array<{ transactionDateRaw?: string; transactionDate?: Date | null; cityName?: string; address?: string }>,
+  _targetMonthKey?: string,
+  _baselineMonthKey?: string
+): MonthlyComparison | null {
+  return calculateGrowthComparison(items, 'YOY_JAN_AUG');
 }
