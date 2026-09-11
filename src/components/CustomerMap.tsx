@@ -163,16 +163,38 @@ export const CustomerMap: React.FC<CustomerMapProps> = ({
       growthMarkersLayerRef.current = growthLayer;
       mapRef.current = map;
 
-      const timer = setTimeout(() => {
+      // Handle dynamic sizing on mobile and window resize
+      const handleResize = () => {
         try {
           map.invalidateSize();
-        } catch {
-          // ignore
-        }
-      }, 200);
+        } catch {}
+      };
+
+      let resizeObserver: ResizeObserver | null = null;
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          handleResize();
+        });
+        resizeObserver.observe(container);
+      }
+
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+
+      // Multiple staggered invalidations for mobile browser viewport hydration
+      const t1 = setTimeout(handleResize, 100);
+      const t2 = setTimeout(handleResize, 350);
+      const t3 = setTimeout(handleResize, 800);
 
       return () => {
-        clearTimeout(timer);
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+        }
         try {
           map.remove();
         } catch {
@@ -472,7 +494,14 @@ export const CustomerMap: React.FC<CustomerMapProps> = ({
           </button>
 
           <button
-            onClick={() => setMapMode('GROWTH')}
+            onClick={() => {
+              setMapMode('GROWTH');
+              setTimeout(() => {
+                try {
+                  mapRef.current?.invalidateSize();
+                } catch {}
+              }, 100);
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
               mapMode === 'GROWTH'
                 ? 'bg-[#dc2626] text-white shadow-xs'
@@ -480,7 +509,8 @@ export const CustomerMap: React.FC<CustomerMapProps> = ({
             }`}
           >
             <TrendingDown className="w-3.5 h-3.5 text-amber-300" />
-            <span>Analisis Growth & Minus Wilayah</span>
+            <span className="hidden sm:inline">Analisis Growth Wilayah</span>
+            <span className="sm:hidden">Peta Growth</span>
             {monthlyComparison && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-extrabold">
                 {monthlyComparison.decliningAreas.length} Perlu Improv
@@ -589,8 +619,8 @@ export const CustomerMap: React.FC<CustomerMapProps> = ({
       </div>
 
       {/* Map Canvas Container */}
-      <div className="relative w-full h-[450px] sm:h-[500px] rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-100">
-        <div ref={mapContainerRef} className="w-full h-full" />
+      <div className="relative w-full h-[380px] sm:h-[480px] lg:h-[520px] min-h-[350px] rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-100">
+        <div ref={mapContainerRef} className="w-full h-full min-h-[350px]" />
 
         {/* Growth Mode Floating Overlay Banner */}
         {mapMode === 'GROWTH' && monthlyComparison && (

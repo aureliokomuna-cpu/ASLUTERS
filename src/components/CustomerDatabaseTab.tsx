@@ -208,22 +208,24 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
     return availableMonths.find((m) => m.key === selectedMonth) || null;
   }, [selectedMonth, availableMonths]);
 
-  // Target month key for MoM comparison
-  const activeCompareMonthKey = useMemo(() => {
-    if (compareTargetMonth !== 'AUTO') {
-      return compareTargetMonth;
-    }
-    if (selectedMonth !== 'ALL' && selectedMonth !== 'NO_DATE') {
-      return selectedMonth;
-    }
-    const validMonths = availableMonths.filter((m) => m.key !== 'NO_DATE');
-    return validMonths.length > 0 ? validMonths[0].key : '2026-08';
-  }, [compareTargetMonth, selectedMonth, availableMonths]);
-
-  // Executive Monthly Comparison (Growth vs Minus Growth per area)
+  // Executive Growth Comparison per Kota (YoY 2025 vs 2026 / MoM)
   const monthlyComparison = useMemo(() => {
-    return calculateMonthlyComparison(items, activeCompareMonthKey);
-  }, [items, activeCompareMonthKey]);
+    return calculateGrowthComparison(items, growthMode, growthSpecificMonth);
+  }, [items, growthMode, growthSpecificMonth]);
+
+  const filteredDecliningAreas = useMemo(() => {
+    if (!monthlyComparison) return [];
+    if (!growthSearchCity.trim()) return monthlyComparison.decliningAreas;
+    const q = growthSearchCity.toLowerCase();
+    return monthlyComparison.decliningAreas.filter((a) => a.cityName.toLowerCase().includes(q));
+  }, [monthlyComparison, growthSearchCity]);
+
+  const filteredGrowingAreas = useMemo(() => {
+    if (!monthlyComparison) return [];
+    if (!growthSearchCity.trim()) return monthlyComparison.growingAreas;
+    const q = growthSearchCity.toLowerCase();
+    return monthlyComparison.growingAreas.filter((a) => a.cityName.toLowerCase().includes(q));
+  }, [monthlyComparison, growthSearchCity]);
 
   const handleFocusAreaOnMap = (cityName: string) => {
     setSelectedCity(cityName);
@@ -461,53 +463,133 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
           {/* Header Bar */}
           <div className="p-3.5 sm:p-4 bg-linear-to-r from-slate-900 via-[#003B73] to-blue-900 text-white flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-amber-300 shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-amber-300 shadow-xs shrink-0">
                 <Target className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-sm sm:text-base font-black tracking-tight">
-                    Bahan Pembanding Tiap Bulan & Analisis Growth DO ALSUT
+                    Analisis Growth Pengiriman DO ALSUT (Per Kota)
                   </h3>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-2xs">
-                    Real-time MoM
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    {monthlyComparison.periodBadge}
                   </span>
                 </div>
                 <p className="text-xs text-sky-100/90 mt-0.5">
-                  Bahan evaluasi tim sales store untuk melihat wilayah tumbuh vs wilayah minus growth yang perlu di-improve
+                  Bahan evaluasi tim sales store untuk melihat pergerakan per kota (2025 vs 2026) tanpa bias data anomali
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Target comparison month selector */}
-              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/15 text-xs">
-                <span className="text-sky-200 font-semibold text-[11px]">Bandingkan:</span>
-                <select
-                  value={compareTargetMonth}
-                  onChange={(e) => setCompareTargetMonth(e.target.value)}
-                  className="bg-transparent text-white font-bold text-xs focus:outline-hidden cursor-pointer"
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Period Selector Tabs */}
+              <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/15 text-xs">
+                <button
+                  onClick={() => setGrowthMode('YOY_JAN_AUG')}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    growthMode === 'YOY_JAN_AUG'
+                      ? 'bg-amber-400 text-slate-950 shadow-xs'
+                      : 'text-sky-100 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Januari - Agustus 2025 vs 2026 (Data Bersih Penuh)"
                 >
-                  <option value="AUTO" className="text-slate-900">
-                    Otomatis ({monthlyComparison.currentMonthLabel} vs {monthlyComparison.prevMonthLabel})
-                  </option>
-                  {availableMonths.filter(m => m.key !== 'NO_DATE').map((m) => (
-                    <option key={m.key} value={m.key} className="text-slate-900">
-                      Bulan {m.label}
-                    </option>
-                  ))}
-                </select>
+                  ⭐ Jan - Agu (YoY)
+                </button>
+
+                <button
+                  onClick={() => setGrowthMode('YOY_JAN_SEP')}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    growthMode === 'YOY_JAN_SEP'
+                      ? 'bg-amber-400 text-slate-950 shadow-xs'
+                      : 'text-sky-100 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Januari - September 2025 vs 2026 (Kumulatif 9 Bulan)"
+                >
+                  Jan - Sep (YTD)
+                </button>
+
+                <button
+                  onClick={() => setGrowthMode('YOY_MONTH')}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    growthMode === 'YOY_MONTH'
+                      ? 'bg-amber-400 text-slate-950 shadow-xs'
+                      : 'text-sky-100 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Pilih 1 Bulan Tertentu (YoY)"
+                >
+                  Per Bulan YoY
+                </button>
+
+                <button
+                  onClick={() => setGrowthMode('MOM_MONTH')}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    growthMode === 'MOM_MONTH'
+                      ? 'bg-amber-400 text-slate-950 shadow-xs'
+                      : 'text-sky-100 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Bulan ke Bulan 2026 (MoM)"
+                >
+                  MoM
+                </button>
               </div>
+
+              {/* Specific Month Selector when in YOY_MONTH mode */}
+              {growthMode === 'YOY_MONTH' && (
+                <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/15 text-xs">
+                  <span className="text-sky-200 font-semibold text-[11px]">Bulan:</span>
+                  <select
+                    value={growthSpecificMonth}
+                    onChange={(e) => setGrowthSpecificMonth(parseInt(e.target.value, 10))}
+                    className="bg-transparent text-white font-bold text-xs focus:outline-hidden cursor-pointer"
+                  >
+                    <option value={8} className="text-slate-900">Agustus</option>
+                    <option value={7} className="text-slate-900">Juli</option>
+                    <option value={6} className="text-slate-900">Juni</option>
+                    <option value={5} className="text-slate-900">Mei</option>
+                    <option value={4} className="text-slate-900">April</option>
+                    <option value={3} className="text-slate-900">Maret</option>
+                    <option value={2} className="text-slate-900">Februari</option>
+                    <option value={1} className="text-slate-900">Januari</option>
+                    <option value={9} className="text-slate-900">September (Parsial)</option>
+                  </select>
+                </div>
+              )}
 
               <button
                 onClick={() => setIsGrowthSectionExpanded(!isGrowthSectionExpanded)}
-                className="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer text-white"
+                className="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer text-white shrink-0"
                 title={isGrowthSectionExpanded ? 'Sembunyikan detail' : 'Tampilkan detail'}
               >
                 {isGrowthSectionExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             </div>
           </div>
+
+          {/* Context Notice / Explanation Banner */}
+          {monthlyComparison.noticeText && (
+            <div className={`px-4 py-2 border-b text-xs flex items-center justify-between gap-2 ${
+              growthMode === 'YOY_JAN_AUG'
+                ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                : growthMode === 'YOY_JAN_SEP'
+                ? 'bg-amber-50 text-amber-900 border-amber-200'
+                : 'bg-sky-50 text-sky-900 border-sky-200'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 font-black">
+                  {growthMode === 'YOY_JAN_AUG' ? '✓ REKOMENDASI UTAMA:' : 'ℹ️ CATATAN PERIODE:'}
+                </span>
+                <span>{monthlyComparison.noticeText}</span>
+              </div>
+              {growthMode === 'YOY_JAN_SEP' && (
+                <button
+                  onClick={() => setGrowthMode('YOY_JAN_AUG')}
+                  className="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-md text-[11px] shrink-0 cursor-pointer"
+                >
+                  Gunakan Jan-Agu
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Quick Metrics Bar */}
           <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -530,7 +612,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
               </div>
               <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
               <div>
-                <span className="text-slate-500 text-[11px] font-bold block">Laju Pertumbuhan MoM</span>
+                <span className="text-slate-500 text-[11px] font-bold block">Laju Pertumbuhan Total</span>
                 <span className={`font-black inline-flex items-center gap-1 ${
                   monthlyComparison.totalGrowthPct >= 0 ? 'text-emerald-600' : 'text-red-600'
                 }`}>
@@ -540,18 +622,40 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                     <ArrowDownRight className="w-4 h-4" />
                   )}
                   {monthlyComparison.totalGrowthPct >= 0 ? '+' : ''}{monthlyComparison.totalGrowthPct}%
+                  <span className="text-slate-500 font-medium text-[11px]">
+                    ({monthlyComparison.totalDiff >= 0 ? '+' : ''}{monthlyComparison.totalDiff} DO)
+                  </span>
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Search city filter inside growth stats */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari nama kota..."
+                  value={growthSearchCity}
+                  onChange={(e) => setGrowthSearchCity(e.target.value)}
+                  className="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#003B73] w-36 sm:w-44"
+                />
+                {growthSearchCity && (
+                  <button
+                    onClick={() => setGrowthSearchCity('')}
+                    className="absolute right-2 top-1 text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-red-100 text-red-700 border border-red-200">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span>{monthlyComparison.decliningAreas.length} Wilayah Perlu Di-Improve</span>
+                <span>{monthlyComparison.decliningAreas.length} Kota Perlu Di-Improve</span>
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
                 <TrendingUp className="w-3.5 h-3.5" />
-                <span>{monthlyComparison.growingAreas.length} Wilayah Tumbuh</span>
+                <span>{monthlyComparison.growingAreas.length} Kota Bertumbuh</span>
               </span>
             </div>
           </div>
@@ -560,34 +664,36 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
           {isGrowthSectionExpanded && (
             <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
               
-              {/* Column 1: Area Perlu Di-Improve (Minus Growth) */}
-              <div className="border border-red-200/90 rounded-2xl bg-red-50/30 overflow-hidden">
+              {/* Column 1: Kota Perlu Di-Improve (Minus Growth) */}
+              <div className="border border-red-200/90 rounded-2xl bg-red-50/30 overflow-hidden flex flex-col">
                 <div className="p-3 bg-red-100/60 border-b border-red-200/80 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
                     <h4 className="text-xs font-black text-red-900 uppercase tracking-wider">
-                      Area Perlu Di-Improve (Minus Growth)
+                      Kota Perlu Di-Improve ({filteredDecliningAreas.length})
                     </h4>
                   </div>
                   <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white">
-                    {monthlyComparison.decliningAreas.length} Wilayah
+                    Minus Growth
                   </span>
                 </div>
 
-                <div className="p-3 space-y-2.5 max-h-[380px] overflow-y-auto pr-1.5">
-                  {monthlyComparison.decliningAreas.length === 0 ? (
+                <div className="p-3 space-y-2.5 max-h-[420px] overflow-y-auto pr-1.5 flex-1">
+                  {filteredDecliningAreas.length === 0 ? (
                     <div className="p-4 text-center text-xs text-slate-500 bg-white rounded-xl">
-                      Tidak ada wilayah dengan minus growth pada periode ini.
+                      {growthSearchCity
+                        ? `Tidak ada kota minus growth dengan kata kunci "${growthSearchCity}".`
+                        : 'Tidak ada kota dengan minus growth pada periode ini.'}
                     </div>
                   ) : (
-                    monthlyComparison.decliningAreas.map((stat: AreaGrowthStat) => (
+                    filteredDecliningAreas.map((stat: AreaGrowthStat) => (
                       <div
                         key={stat.cityName}
                         className="bg-white p-3 rounded-xl border border-red-100 shadow-2xs hover:shadow-xs transition-shadow space-y-2"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-black text-slate-900">
                                 {stat.cityName}
                               </span>
@@ -596,7 +702,8 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                               </span>
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              {stat.currentCount.toLocaleString()} DO vs {stat.prevCount.toLocaleString()} DO ({stat.diff} Order)
+                              <strong>{stat.currentCount.toLocaleString()} DO</strong> (2026) vs <strong>{stat.prevCount.toLocaleString()} DO</strong> (2025)
+                              <span className="text-red-600 font-bold ml-1">({stat.diff} DO)</span>
                             </div>
                           </div>
 
@@ -611,7 +718,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
 
                         <div className="bg-red-50/70 p-2 rounded-lg border-l-3 border-red-500 text-[11px] text-slate-700 leading-snug">
                           <strong className="text-red-700 block font-bold text-[10px] mb-0.5">
-                            💡 REKOMENDASI SALES ADVISOR:
+                            💡 REKOMENDASI SALES TOKO:
                           </strong>
                           {stat.recommendation}
                         </div>
@@ -621,34 +728,36 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                 </div>
               </div>
 
-              {/* Column 2: Area Bertumbuh (Positive Growth) */}
-              <div className="border border-emerald-200/90 rounded-2xl bg-emerald-50/30 overflow-hidden">
+              {/* Column 2: Kota Bertumbuh (Positive Growth) */}
+              <div className="border border-emerald-200/90 rounded-2xl bg-emerald-50/30 overflow-hidden flex flex-col">
                 <div className="p-3 bg-emerald-100/60 border-b border-emerald-200/80 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                     <h4 className="text-xs font-black text-emerald-900 uppercase tracking-wider">
-                      Area Bertumbuh (Positive Growth)
+                      Kota Bertumbuh ({filteredGrowingAreas.length})
                     </h4>
                   </div>
                   <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white">
-                    {monthlyComparison.growingAreas.length} Wilayah
+                    Positive Growth
                   </span>
                 </div>
 
-                <div className="p-3 space-y-2.5 max-h-[380px] overflow-y-auto pr-1.5">
-                  {monthlyComparison.growingAreas.length === 0 ? (
+                <div className="p-3 space-y-2.5 max-h-[420px] overflow-y-auto pr-1.5 flex-1">
+                  {filteredGrowingAreas.length === 0 ? (
                     <div className="p-4 text-center text-xs text-slate-500 bg-white rounded-xl">
-                      Tidak ada wilayah bertumbuh pada periode ini.
+                      {growthSearchCity
+                        ? `Tidak ada kota bertumbuh dengan kata kunci "${growthSearchCity}".`
+                        : 'Tidak ada kota bertumbuh pada periode ini.'}
                     </div>
                   ) : (
-                    monthlyComparison.growingAreas.map((stat: AreaGrowthStat) => (
+                    filteredGrowingAreas.map((stat: AreaGrowthStat) => (
                       <div
                         key={stat.cityName}
                         className="bg-white p-3 rounded-xl border border-emerald-100 shadow-2xs hover:shadow-xs transition-shadow space-y-2"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-black text-slate-900">
                                 {stat.cityName}
                               </span>
@@ -657,7 +766,8 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                               </span>
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              {stat.currentCount.toLocaleString()} DO vs {stat.prevCount.toLocaleString()} DO (+{stat.diff} Order)
+                              <strong>{stat.currentCount.toLocaleString()} DO</strong> (2026) vs <strong>{stat.prevCount.toLocaleString()} DO</strong> (2025)
+                              <span className="text-emerald-700 font-bold ml-1">(+{stat.diff} DO)</span>
                             </div>
                           </div>
 
