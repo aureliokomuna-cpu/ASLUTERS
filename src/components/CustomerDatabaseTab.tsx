@@ -24,7 +24,8 @@ import {
   ChevronDown,
   ChevronUp,
   Target,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { DeliveryItem } from '../types';
 import { CustomerMap } from './CustomerMap';
@@ -47,6 +48,12 @@ interface CustomerDatabaseTabProps {
   onViewDetail: (item: DeliveryItem) => void;
   selectedMapItem: DeliveryItem | null;
   onSelectMapItem: (item: DeliveryItem | null) => void;
+  is2025Loading?: boolean;
+  is2025Loaded?: boolean;
+  liveStats2025?: Record<string, Record<number, number>>;
+  onRefresh2025?: () => void;
+  items2026Count?: number;
+  items2025Count?: number;
 }
 
 interface MonthData {
@@ -64,10 +71,17 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
   cities,
   onViewDetail,
   selectedMapItem,
-  onSelectMapItem
+  onSelectMapItem,
+  is2025Loading = false,
+  is2025Loaded = false,
+  liveStats2025,
+  onRefresh2025,
+  items2026Count,
+  items2025Count
 }) => {
   // Default view to COMBINED (Map + List) so the interactive OSM map is always visible right away
   const [viewMode, setViewMode] = useState<'COMBINED' | 'MAP' | 'LIST'>('COMBINED');
+  const [selectedYear, setSelectedYear] = useState<'2026' | '2025' | 'ALL'>('2026');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('ALL');
   const [selectedMonth, setSelectedMonth] = useState('ALL'); // 'ALL' or 'YYYY-MM' or 'NO_DATE'
@@ -80,11 +94,20 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
   const [isGrowthSectionExpanded, setIsGrowthSectionExpanded] = useState<boolean>(true);
   const [initialMapMode, setInitialMapMode] = useState<'DELIVERIES' | 'GROWTH'>('DELIVERIES');
 
-  // Extract unique transaction months across all customer items
+  // Extract unique transaction months across customer items for the selected year
   const availableMonths = useMemo(() => {
     const map = new Map<string, MonthData>();
     
     items.forEach((item) => {
+      // Filter months by selectedYear
+      if (selectedYear === '2026') {
+        const itemYear = item.datasetYear || (item.transactionDate ? item.transactionDate.getFullYear() : 2026);
+        if (itemYear !== 2026) return;
+      } else if (selectedYear === '2025') {
+        const itemYear = item.datasetYear || (item.transactionDate ? item.transactionDate.getFullYear() : 0);
+        if (itemYear !== 2025) return;
+      }
+
       if (item.transactionDate) {
         const y = item.transactionDate.getFullYear();
         const m = item.transactionDate.getMonth();
@@ -123,13 +146,22 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
       result.push(val);
     });
     return result.sort((a, b) => b.timestamp - a.timestamp);
-  }, [items]);
+  }, [items, selectedYear]);
 
-  // Filtered customer items based on Month, Status, City, and Search Query
+  // Filtered customer items based on Year, Month, Status, City, and Search Query
   const filteredItems = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     
     return items.filter((item) => {
+      // 0. Year filter
+      if (selectedYear === '2026') {
+        const itemYear = item.datasetYear || (item.transactionDate ? item.transactionDate.getFullYear() : 2026);
+        if (itemYear !== 2026) return false;
+      } else if (selectedYear === '2025') {
+        const itemYear = item.datasetYear || (item.transactionDate ? item.transactionDate.getFullYear() : 0);
+        if (itemYear !== 2025) return false;
+      }
+
       // 1. Month filter (Bulan Transaksi)
       if (selectedMonth !== 'ALL') {
         const itemMonthKey = getTransactionMonthKey(item.transactionDate);
@@ -195,9 +227,9 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
       }
       return 0;
     });
-  }, [items, selectedMonth, selectedStatus, selectedCity, searchQuery, sortBy]);
+  }, [items, selectedYear, selectedMonth, selectedStatus, selectedCity, searchQuery, sortBy]);
 
-  // Items for Map (filtered by month and status)
+  // Items for Map (filtered by year, month and status)
   const mapItems = useMemo(() => {
     return filteredItems;
   }, [filteredItems]);
@@ -210,8 +242,8 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
 
   // Executive Growth Comparison per Kota (YoY 2025 vs 2026 / MoM)
   const monthlyComparison = useMemo(() => {
-    return calculateGrowthComparison(items, growthMode, growthSpecificMonth);
-  }, [items, growthMode, growthSpecificMonth]);
+    return calculateGrowthComparison(items, growthMode, growthSpecificMonth, liveStats2025);
+  }, [items, growthMode, growthSpecificMonth, liveStats2025]);
 
   const filteredDecliningAreas = useMemo(() => {
     if (!monthlyComparison) return [];

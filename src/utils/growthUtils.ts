@@ -14,6 +14,7 @@ export interface AreaGrowthStat {
 
 export type GrowthComparisonMode = 
   | 'YOY_JAN_AUG'      // Jan - Agu 2025 vs Jan - Agu 2026 (Rekomendasi Utama)
+  | 'YOY_MAY_AUG'      // Mei - Agu 2025 vs Mei - Agu 2026 (Periode Penuh Berjalan)
   | 'YOY_JAN_SEP'      // Jan - Sep 2025 vs Jan - Sep 2026 (YTD Kumulatif)
   | 'YOY_MONTH'        // Bulan Spesifik YoY (e.g. Agustus 2025 vs 2026)
   | 'MOM_MONTH';       // Bulan ke Bulan MoM (e.g. Agustus 2026 vs Juli 2026)
@@ -196,36 +197,44 @@ export function getRecommendationForArea(cityName: string, status: 'GROWTH' | 'D
  * Calculate accurate Year-over-Year (2025 vs 2026) or MoM Growth per Kota
  */
 export function calculateGrowthComparison(
-  items: Array<{ transactionDateRaw?: string; transactionDate?: Date | null; cityName?: string; address?: string }>,
+  items: Array<{ transactionDateRaw?: string; transactionDate?: Date | null; cityName?: string; address?: string; datasetYear?: 2025 | 2026 }>,
   mode: GrowthComparisonMode = 'YOY_JAN_AUG',
-  specificMonth: number = 8 // Default to August for specific month YoY
+  specificMonth: number = 8, // Default to August for specific month YoY
+  liveStats2025?: Record<string, Record<number, number>>
 ): MonthlyComparison | null {
-  // Aggregate 2026 data from items per city and per month
+  // Aggregate 2026 data and 2025 data (if present in items) per city and per month
   const stats2026: Record<string, Record<number, number>> = {};
+  const extractedStats2025: Record<string, Record<number, number>> = {};
 
   items.forEach((item) => {
     let m = 0;
-    let y = 0;
+    let y = item.datasetYear || 0;
 
     if (item.transactionDate) {
-      y = item.transactionDate.getFullYear();
+      y = y || item.transactionDate.getFullYear();
       m = item.transactionDate.getMonth() + 1;
     } else if (item.transactionDateRaw) {
       const match = item.transactionDateRaw.match(/(202\d)[-/.](\d{1,2})/);
       if (match) {
-        y = parseInt(match[1], 10);
+        y = y || parseInt(match[1], 10);
         m = parseInt(match[2], 10);
       }
     }
 
+    const city = cleanCityName(item.cityName, item.address);
+
     if (y === 2026 && m >= 1 && m <= 12) {
-      const city = cleanCityName(item.cityName, item.address);
       if (!stats2026[city]) stats2026[city] = {};
       stats2026[city][m] = (stats2026[city][m] || 0) + 1;
+    } else if (y === 2025 && m >= 1 && m <= 12) {
+      if (!extractedStats2025[city]) extractedStats2025[city] = {};
+      extractedStats2025[city][m] = (extractedStats2025[city][m] || 0) + 1;
     }
   });
 
-  const stats2025 = CITY_MONTH_COUNTS_2025;
+  // Prioritize live 2025 stats from API/items, then fallback to CITY_MONTH_COUNTS_2025
+  const hasExtracted2025 = Object.keys(extractedStats2025).length > 0;
+  const stats2025 = liveStats2025 || (hasExtracted2025 ? extractedStats2025 : CITY_MONTH_COUNTS_2025);
 
   let currentLabel = '';
   let prevLabel = '';
@@ -236,7 +245,26 @@ export function calculateGrowthComparison(
   const currentCityCounts: Record<string, number> = {};
   const prevCityCounts: Record<string, number> = {};
 
-  if (mode === 'YOY_JAN_AUG') {
+  if (mode === 'YOY_MAY_AUG') {
+    // Mode Khusus: Mei - Agustus 2025 vs 2026 (4 Bulan Penuh Transaksi Aktif)
+    currentLabel = 'Mei - Agustus 2026';
+    prevLabel = 'Mei - Agustus 2025';
+    periodBadge = 'YoY: Mei-Agu (4 Bln Penuh)';
+    noticeText = 'Periode Mei-Agustus adalah 4 bulan penuh dengan pencatatan transaksi aktif di kedua tahun (2025 vs 2026).';
+    isSeptemberIncluded = false;
+
+    // Sum 5..8
+    for (const city of Object.keys(stats2026)) {
+      let sum = 0;
+      for (let m = 5; m <= 8; m++) sum += (stats2026[city]?.[m] || 0);
+      currentCityCounts[city] = sum;
+    }
+    for (const city of Object.keys(stats2025)) {
+      let sum = 0;
+      for (let m = 5; m <= 8; m++) sum += (stats2025[city]?.[m] || 0);
+      prevCityCounts[city] = sum;
+    }
+  } else if (mode === 'YOY_JAN_AUG') {
     // Mode Utama: Januari - Agustus 2025 vs 2026
     currentLabel = 'Januari - Agustus 2026';
     prevLabel = 'Januari - Agustus 2025';

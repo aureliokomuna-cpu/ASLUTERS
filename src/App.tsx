@@ -7,12 +7,17 @@ import { ReceiptSearchTab } from './components/ReceiptSearchTab';
 import { TrafficTab } from './components/TrafficTab';
 import { DetailModal } from './components/DetailModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { fetchAndParseDeliveryData } from './utils/csvParser';
+import { fetchAndParseDeliveryData, fetchAndParse2025Data } from './utils/csvParser';
 import { DeliveryItem, GroupedReceipt } from './types';
 import { Loader2, AlertCircle, RefreshCw, Truck } from 'lucide-react';
 
 export default function App() {
-  const [items, setItems] = useState<DeliveryItem[]>([]);
+  const [items2026, setItems2026] = useState<DeliveryItem[]>([]);
+  const [items2025, setItems2025] = useState<DeliveryItem[]>([]);
+  const [liveStats2025, setLiveStats2025] = useState<Record<string, Record<number, number>> | undefined>(undefined);
+  const [isLoading2025, setIsLoading2025] = useState<boolean>(false);
+  const [is2025Loaded, setIs2025Loaded] = useState<boolean>(false);
+
   const [groupedByReceipt, setGroupedByReceipt] = useState<Map<string, GroupedReceipt>>(new Map());
   const [cities, setCities] = useState<string[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -26,33 +31,63 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterH1Trigger, setFilterH1Trigger] = useState<boolean>(false);
 
-  // Load Data function
+  // Load 2025 live comparison data from Tab 2
+  const load2025Data = useCallback(async () => {
+    setIsLoading2025(true);
+    try {
+      const data2025 = await fetchAndParse2025Data();
+      setItems2025(data2025.items);
+      setLiveStats2025(data2025.cityMonthCounts);
+      setIs2025Loaded(true);
+    } catch (err) {
+      console.warn('Gagal memuat live data 2025 pembanding, fallback ke baseline:', err);
+    } finally {
+      setIsLoading2025(false);
+    }
+  }, []);
+
+  // Load 2026 Live Tracking & Initial Data
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await fetchAndParseDeliveryData();
-      setItems(data.items);
+      setItems2026(data.items);
       setGroupedByReceipt(data.groupedByReceipt);
       setCities(data.cities);
       setLastUpdated(data.lastUpdated);
+      // Immediately start background fetch of 2025 live comparison data
+      load2025Data();
     } catch (err: any) {
       console.error('Error fetching delivery data:', err);
       setError(err?.message || 'Gagal memuat data dari Google Sheets. Periksa koneksi internet Anda.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [load2025Data]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Counts for tabs & KPI
-  const activeCount = useMemo(() => items.filter((i) => i.status === 'IN_TRANSIT').length, [items]);
-  const waitingCount = useMemo(() => items.filter((i) => i.status === 'WAITING_SCHEDULE').length, [items]);
-  const completedCount = useMemo(() => items.filter((i) => i.status === 'COMPLETED').length, [items]);
-  const urgentH1Count = useMemo(() => items.filter((i) => i.status === 'IN_TRANSIT' && i.isUrgentTomorrow).length, [items]);
+  // Combined items for Database and Search
+  const combinedItems = useMemo(() => {
+    return [...items2026, ...items2025];
+  }, [items2026, items2025]);
+
+  const allCities = useMemo(() => {
+    const set = new Set<string>(cities);
+    items2025.forEach((i) => {
+      if (i.cityName) set.add(i.cityName);
+    });
+    return Array.from(set).sort();
+  }, [cities, items2025]);
+
+  // Counts for tabs & KPI (reflects current 2026 operational status)
+  const activeCount = useMemo(() => items2026.filter((i) => i.status === 'IN_TRANSIT').length, [items2026]);
+  const waitingCount = useMemo(() => items2026.filter((i) => i.status === 'WAITING_SCHEDULE').length, [items2026]);
+  const completedCount = useMemo(() => items2026.filter((i) => i.status === 'COMPLETED').length, [items2026]);
+  const urgentH1Count = useMemo(() => items2026.filter((i) => i.status === 'IN_TRANSIT' && i.isUrgentTomorrow).length, [items2026]);
 
   // Handlers
   const handleHeaderSearch = (query: string) => {
@@ -112,7 +147,7 @@ export default function App() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           
           {/* Loading State */}
-          {isLoading && items.length === 0 && (
+          {isLoading && items2026.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 bg-white rounded-3xl border border-slate-200 shadow-sm">
               <div className="w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
                 <Loader2 className="w-8 h-8 animate-spin" />
@@ -127,7 +162,7 @@ export default function App() {
           )}
 
           {/* Error State */}
-          {error && !isLoading && items.length === 0 && (
+          {error && !isLoading && items2026.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 bg-white rounded-3xl border border-red-200 shadow-sm">
               <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
                 <AlertCircle className="w-8 h-8" />
@@ -149,10 +184,10 @@ export default function App() {
           )}
 
           {/* Tab 1: Live Tracking */}
-          {!isLoading && items.length > 0 && activeTab === 'TRACKING' && (
+          {!isLoading && items2026.length > 0 && activeTab === 'TRACKING' && (
             <ErrorBoundary fallbackTitle="Gagal memuat tab Live Tracking">
               <TrackingTab
-                items={items}
+                items={items2026}
                 cities={cities}
                 onViewDetail={(item) => setSelectedDetailItem(item)}
                 onFocusMap={handleFocusMap}
@@ -161,25 +196,31 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {/* Tab 2: Database Customer */}
-          {!isLoading && items.length > 0 && activeTab === 'DATABASE' && (
+          {/* Tab 2: Database Customer (Supports 2026 Live + 2025 Pembanding) */}
+          {!isLoading && items2026.length > 0 && activeTab === 'DATABASE' && (
             <ErrorBoundary fallbackTitle="Gagal memuat tab Database Customer">
               <CustomerDatabaseTab
-                items={items}
-                cities={cities}
+                items={combinedItems}
+                cities={allCities}
                 onViewDetail={(item) => setSelectedDetailItem(item)}
                 selectedMapItem={selectedMapItem}
                 onSelectMapItem={setSelectedMapItem}
+                is2025Loading={isLoading2025}
+                is2025Loaded={is2025Loaded}
+                liveStats2025={liveStats2025}
+                onRefresh2025={load2025Data}
+                items2026Count={items2026.length}
+                items2025Count={items2025.length}
               />
             </ErrorBoundary>
           )}
 
           {/* Tab 3: Search No. Receipt */}
-          {!isLoading && items.length > 0 && activeTab === 'SEARCH' && (
+          {!isLoading && items2026.length > 0 && activeTab === 'SEARCH' && (
             <ErrorBoundary fallbackTitle="Gagal memuat tab Pencarian Receipt">
               <ReceiptSearchTab
                 groupedByReceipt={groupedByReceipt}
-                allItems={items}
+                allItems={combinedItems}
                 initialSearchQuery={searchQuery}
                 onViewDetail={(item) => setSelectedDetailItem(item)}
               />

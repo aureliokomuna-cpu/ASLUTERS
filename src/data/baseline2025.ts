@@ -1,174 +1,177 @@
 /**
  * Data Agregat DO Informa Living World Alam Sutera Tahun 2025 Per Kota & Bulan (1-12)
- * Sumber: Google Spreadsheet Tab 2 (gid=1438692354) - 30.753 baris data
+ * Sumber: Google Spreadsheet Tab JAN-DES 2025 (gid=1438692354) - 30.753 baris data
+ * Normalisasi kota identik 100% dengan filter cleanCityName di 2026 (termasuk deteksi alamat)
  */
 export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
-  "57": {
-    "3": 1
+  "Tangerang Selatan": {
+    "2": 801,
+    "3": 1054,
+    "4": 1009,
+    "9": 1095,
+    "10": 903,
+    "11": 938,
+    "12": 1187,
+    "1": 1093,
+    "6": 1061,
+    "8": 1092,
+    "5": 991,
+    "7": 1105
   },
   "Tangerang": {
-    "1": 1012,
-    "2": 810,
-    "3": 1009,
-    "4": 981,
-    "5": 973,
-    "6": 939,
-    "7": 1044,
-    "8": 1010,
-    "9": 988,
-    "10": 958,
-    "11": 967,
-    "12": 1219
+    "2": 553,
+    "4": 668,
+    "1": 701,
+    "3": 675,
+    "6": 623,
+    "9": 643,
+    "10": 634,
+    "5": 693,
+    "7": 699,
+    "8": 658,
+    "11": 636,
+    "12": 815
   },
   "Jakarta Barat": {
+    "3": 216,
+    "2": 223,
     "1": 280,
-    "2": 212,
-    "3": 212,
-    "4": 206,
-    "5": 207,
+    "9": 194,
+    "4": 210,
+    "5": 205,
     "6": 213,
-    "7": 193,
-    "8": 254,
-    "9": 201,
-    "10": 197,
-    "11": 205,
-    "12": 287
-  },
-  "Tangerang Selatan": {
-    "1": 898,
-    "2": 664,
-    "3": 852,
-    "4": 809,
-    "5": 808,
-    "6": 859,
-    "7": 893,
-    "8": 880,
-    "9": 887,
-    "10": 712,
-    "11": 706,
-    "12": 916
+    "7": 204,
+    "8": 244,
+    "10": 194,
+    "11": 207,
+    "12": 282
   },
   "Jakarta Pusat": {
-    "1": 69,
-    "2": 35,
-    "3": 48,
-    "4": 47,
-    "5": 40,
-    "6": 39,
+    "1": 64,
+    "2": 32,
+    "3": 49,
+    "4": 48,
+    "5": 41,
+    "6": 38,
     "7": 46,
-    "8": 26,
-    "9": 40,
-    "10": 51,
-    "11": 38,
+    "8": 24,
+    "9": 41,
+    "10": 52,
+    "11": 39,
     "12": 54
   },
   "Jakarta Timur": {
-    "1": 20,
-    "2": 26,
-    "3": 28,
-    "4": 27,
-    "5": 29,
-    "6": 42,
-    "7": 35,
-    "8": 22,
-    "9": 28,
-    "10": 21,
-    "11": 37,
-    "12": 36
+    "2": 25,
+    "1": 18,
+    "3": 23,
+    "4": 23,
+    "5": 22,
+    "6": 35,
+    "7": 28,
+    "8": 20,
+    "9": 24,
+    "10": 19,
+    "11": 36,
+    "12": 27
   },
   "Jakarta Selatan": {
-    "1": 133,
-    "2": 105,
-    "3": 105,
-    "4": 101,
-    "5": 131,
-    "6": 123,
-    "7": 123,
-    "8": 138,
-    "9": 113,
-    "10": 108,
-    "11": 120,
-    "12": 132
+    "2": 92,
+    "1": 122,
+    "3": 93,
+    "4": 90,
+    "5": 112,
+    "6": 115,
+    "7": 104,
+    "8": 117,
+    "9": 98,
+    "10": 88,
+    "11": 94,
+    "12": 111
   },
   "Bekasi": {
-    "1": 29,
-    "2": 29,
     "3": 31,
+    "1": 27,
+    "2": 29,
     "4": 27,
-    "5": 35,
-    "6": 31,
+    "5": 34,
+    "6": 30,
     "7": 21,
     "8": 19,
-    "9": 20,
-    "10": 22,
-    "11": 24,
+    "9": 21,
+    "10": 21,
+    "11": 23,
     "12": 40
   },
   "Bogor": {
-    "1": 62,
-    "2": 45,
-    "3": 58,
-    "4": 49,
-    "5": 55,
-    "6": 75,
-    "7": 61,
-    "8": 56,
-    "9": 76,
-    "10": 47,
-    "11": 56,
-    "12": 85
+    "5": 46,
+    "1": 54,
+    "2": 41,
+    "3": 46,
+    "4": 43,
+    "6": 62,
+    "7": 54,
+    "8": 50,
+    "9": 65,
+    "10": 42,
+    "11": 50,
+    "12": 72
   },
   "Depok": {
-    "1": 55,
-    "2": 51,
-    "3": 68,
-    "4": 53,
-    "5": 39,
-    "6": 56,
-    "7": 51,
-    "8": 26,
-    "9": 54,
-    "10": 26,
-    "11": 41,
-    "12": 63
+    "5": 36,
+    "9": 43,
+    "1": 37,
+    "2": 33,
+    "3": 56,
+    "4": 37,
+    "6": 43,
+    "7": 30,
+    "8": 23,
+    "10": 21,
+    "11": 29,
+    "12": 53
   },
   "Kab. Tangerang": {
-    "1": 2,
-    "5": 1,
-    "6": 2,
-    "7": 2,
-    "8": 2,
-    "9": 1,
-    "11": 2
+    "6": 171,
+    "12": 202,
+    "9": 189,
+    "1": 169,
+    "2": 162,
+    "3": 179,
+    "4": 156,
+    "5": 149,
+    "7": 183,
+    "8": 203,
+    "10": 176,
+    "11": 156
   },
   "Pekanbaru": {
+    "8": 1,
     "5": 1,
     "6": 3,
-    "8": 1,
     "9": 2,
     "11": 5,
     "12": 3
   },
   "Jakarta Utara": {
     "1": 121,
-    "2": 110,
-    "3": 103,
+    "2": 112,
+    "3": 99,
     "4": 75,
-    "5": 98,
-    "6": 120,
-    "7": 90,
-    "8": 98,
-    "9": 99,
-    "10": 112,
-    "11": 87,
-    "12": 95
+    "5": 97,
+    "6": 118,
+    "7": 91,
+    "8": 95,
+    "9": 98,
+    "10": 111,
+    "11": 85,
+    "12": 96
   },
   "Palembang": {
     "1": 1,
     "2": 1,
     "7": 2,
     "8": 2,
-    "10": 4,
+    "10": 3,
     "11": 3
   },
   "Bandung": {
@@ -177,17 +180,17 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "3": 7,
     "4": 4,
     "5": 3,
-    "6": 3,
-    "7": 4,
+    "6": 7,
+    "7": 5,
     "8": 7,
     "9": 6,
     "10": 4,
-    "11": 8,
-    "12": 3
+    "11": 6,
+    "12": 4
   },
   "Surabaya": {
-    "1": 5,
-    "2": 5,
+    "1": 3,
+    "2": 3,
     "3": 2,
     "5": 2,
     "6": 1,
@@ -196,7 +199,7 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "9": 4,
     "10": 3,
     "11": 3,
-    "12": 5
+    "12": 3
   },
   "Banjarbaru": {
     "1": 2,
@@ -204,43 +207,43 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "9": 3,
     "11": 2
   },
-  "Tapanuli Selatan": {
+  "Tapanuli selatan": {
     "1": 1
   },
   "Serang": {
     "1": 23,
-    "2": 17,
-    "3": 21,
-    "4": 27,
-    "5": 30,
-    "6": 26,
-    "7": 18,
-    "8": 30,
-    "9": 23,
-    "10": 29,
-    "11": 34,
-    "12": 25
+    "2": 12,
+    "3": 23,
+    "4": 23,
+    "5": 21,
+    "6": 22,
+    "7": 16,
+    "8": 23,
+    "9": 21,
+    "10": 23,
+    "11": 28,
+    "12": 22
   },
   "Lebak": {
     "1": 7,
-    "2": 5,
+    "2": 3,
     "3": 4,
-    "4": 7,
+    "4": 4,
     "5": 4,
     "6": 10,
     "7": 5,
     "9": 3,
     "10": 5,
-    "11": 6,
+    "11": 8,
     "12": 6
   },
   "Karawang": {
     "1": 5,
-    "2": 2,
-    "3": 4,
+    "2": 1,
+    "3": 3,
     "4": 1,
     "5": 1,
-    "6": 5,
+    "6": 4,
     "7": 1,
     "8": 4,
     "9": 6,
@@ -259,21 +262,7 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   "Yogyakarta": {
     "1": 1,
     "2": 1,
-    "5": 1,
-    "12": 1
-  },
-  "Sukabumi kota": {
-    "1": 3,
-    "2": 3,
-    "3": 2,
-    "4": 1,
-    "5": 1,
-    "6": 4,
-    "7": 3,
-    "8": 2,
-    "9": 9,
-    "10": 1,
-    "12": 9
+    "5": 1
   },
   "Semarang kota": {
     "1": 2,
@@ -296,8 +285,20 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   "Subang": {
     "1": 3,
     "2": 2,
-    "4": 2,
-    "7": 2
+    "4": 1,
+    "7": 3
+  },
+  "Sukabumi kota": {
+    "1": 2,
+    "2": 3,
+    "3": 2,
+    "5": 1,
+    "6": 4,
+    "7": 3,
+    "8": 2,
+    "9": 9,
+    "10": 1,
+    "12": 9
   },
   "Pati": {
     "1": 2,
@@ -315,12 +316,11 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   "Cirebon kota": {
     "1": 1,
     "2": 1,
-    "3": 6,
+    "3": 4,
     "5": 2,
     "6": 1,
     "7": 2,
     "8": 1,
-    "9": 1,
     "10": 1
   },
   "Bantul": {
@@ -330,7 +330,6 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   },
   "Pontianak": {
     "1": 1,
-    "3": 1,
     "6": 1
   },
   "Tegal kota": {
@@ -350,37 +349,36 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   },
   "Cianjur": {
     "1": 2,
-    "2": 5,
+    "2": 1,
     "3": 3,
     "4": 2,
     "6": 2,
     "7": 7,
     "8": 6,
-    "9": 6,
+    "9": 5,
     "10": 2,
-    "12": 7
+    "12": 6
   },
   "Badung": {
     "1": 1,
     "2": 1,
     "3": 4,
     "5": 1,
-    "6": 6,
-    "7": 1,
+    "6": 3,
     "8": 5,
     "9": 1,
     "10": 3,
     "11": 1,
-    "12": 2
+    "12": 1
   },
-  "Bandar Lampung": {
-    "1": 5,
+  "Bandar lampung": {
+    "1": 3,
     "2": 1,
     "4": 2,
     "5": 1,
     "6": 4,
     "7": 2,
-    "8": 5,
+    "8": 1,
     "9": 1,
     "10": 2,
     "11": 4
@@ -412,21 +410,18 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   },
   "Sleman": {
     "2": 3,
-    "3": 3,
+    "3": 1,
     "4": 1,
     "7": 1,
     "8": 1,
     "9": 1,
-    "12": 5
+    "12": 2
   },
   "Padang": {
     "2": 2,
     "7": 1,
     "8": 2,
     "11": 2
-  },
-  "Tanjung Pinang": {
-    "2": 1
   },
   "Sragen": {
     "2": 1,
@@ -453,21 +448,17 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "11": 1,
     "12": 1
   },
-  "Konawe": {
-    "2": 1
-  },
   "Garut": {
     "2": 2,
     "3": 1,
-    "8": 1,
     "9": 1,
     "12": 2
   },
-  "Surakarta (Solo)": {
+  "Surakarta (solo)": {
     "2": 1,
     "11": 2
   },
-  "Kubu Raya": {
+  "Kubu raya": {
     "2": 1,
     "6": 1,
     "7": 1,
@@ -507,13 +498,13 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "9": 1
   },
   "Pandeglang": {
-    "3": 3,
+    "3": 1,
     "4": 3,
     "6": 3,
     "9": 5,
     "12": 5
   },
-  "Lampung Selatan": {
+  "Lampung selatan": {
     "3": 1,
     "6": 1,
     "7": 1
@@ -543,15 +534,11 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "3": 1,
     "11": 1
   },
-  "Blitar Kota": {
-    "3": 1,
-    "11": 4
+  "Blitar kota": {
+    "3": 1
   },
-  "Aceh Selatan": {
-    "4": 3,
-    "6": 2,
-    "7": 2,
-    "8": 1
+  "Aceh selatan": {
+    "4": 1
   },
   "Banjar": {
     "4": 3,
@@ -572,10 +559,10 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "9": 1,
     "10": 3
   },
-  "Lampung Timur": {
+  "Lampung timur": {
     "4": 2
   },
-  "Lombok Barat": {
+  "Lombok barat": {
     "4": 2,
     "8": 2
   },
@@ -589,9 +576,6 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "5": 1,
     "11": 1
   },
-  "Langsa": {
-    "5": 1
-  },
   "Boyolali": {
     "5": 1
   },
@@ -603,13 +587,12 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "12": 2
   },
   "Gianyar": {
-    "3": 1,
-    "6": 4,
-    "7": 1
+    "6": 1,
+    "3": 1
   },
-  "Kulon Progo": {
+  "Kulon progo": {
     "6": 2,
-    "7": 2
+    "7": 1
   },
   "Lembata": {
     "6": 1
@@ -617,23 +600,20 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   "Bukittinggi": {
     "6": 2
   },
-  "Palu": {
-    "6": 1
-  },
-  "Penajam Paser Utara": {
+  "Penajam paser utara": {
     "6": 3
   },
   "Batang hari": {
     "7": 1
   },
   "Sawah lunto": {
-    "6": 2,
-    "7": 4
+    "7": 4,
+    "6": 2
   },
-  "Barito Selatan": {
+  "Barito selatan": {
     "7": 2
   },
-  "Barito Utara": {
+  "Barito utara": {
     "7": 5
   },
   "Bitung": {
@@ -651,10 +631,7 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "11": 2,
     "12": 2
   },
-  "SUBANG": {
-    "7": 1
-  },
-  "Tapanuli Tengah": {
+  "Tapanuli tengah": {
     "8": 1
   },
   "Manado": {
@@ -662,13 +639,13 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "9": 2,
     "10": 1
   },
-  "Lampung Tengah": {
+  "Lampung tengah": {
     "8": 1
   },
   "Pasuruan kota": {
     "8": 1
   },
-  "Padang Pariaman": {
+  "Padang pariaman": {
     "8": 1
   },
   "Majalengka": {
@@ -678,11 +655,7 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "8": 2,
     "11": 1
   },
-  "TANGGERANG": {
-    "8": 1,
-    "12": 1
-  },
-  "Aceh Besar": {
+  "Aceh besar": {
     "8": 2
   },
   "Medan": {
@@ -707,20 +680,20 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   "Indramayu": {
     "10": 1
   },
-  "Deli Serdang": {
+  "Deli serdang": {
     "11": 2,
     "12": 2
   },
   "Binjai": {
     "11": 1
   },
-  "Aceh Barat": {
+  "Aceh barat": {
     "11": 1
   },
-  "Banda Aceh": {
+  "Banda aceh": {
     "11": 2
   },
-  "Barito Kuala": {
+  "Barito kuala": {
     "11": 2
   },
   "Jepara": {
@@ -729,7 +702,7 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   "Bengkalis": {
     "11": 1
   },
-  "Muaro Jambi": {
+  "Muaro jambi": {
     "11": 1,
     "12": 1
   },
@@ -745,7 +718,7 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
   "Kediri kota": {
     "12": 1
   },
-  "Kutai Timur": {
+  "Kutai timur": {
     "12": 2
   },
   "Brebes": {
@@ -755,9 +728,6 @@ export const CITY_MONTH_COUNTS_2025: Record<string, Record<number, number>> = {
     "12": 2
   },
   "Bangkalan": {
-    "12": 1
-  },
-  "Mandailing Natal": {
     "12": 1
   },
   "Kebumen": {

@@ -77,6 +77,7 @@ export interface DeliveryItem {
   deliveryId: string;
   
   // Computed properties
+  datasetYear?: 2025 | 2026;
   status: DeliveryStatus;
   statusLabel: string;
   isUrgentTomorrow: boolean; // H-1
