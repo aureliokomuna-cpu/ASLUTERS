@@ -25,7 +25,8 @@ import {
   ChevronUp,
   Target,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Database
 } from 'lucide-react';
 import { DeliveryItem } from '../types';
 import { CustomerMap } from './CustomerMap';
@@ -88,8 +89,8 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'COMPLETED' | 'IN_TRANSIT' | 'WAITING_SCHEDULE'>('ALL');
   const [sortBy, setSortBy] = useState<'TRANS_DATE_DESC' | 'TRANS_DATE_ASC' | 'DATE_DESC' | 'DATE_ASC' | 'NAME_ASC' | 'RECEIPT'>('TRANS_DATE_DESC');
   const [currentPage, setCurrentPage] = useState(1);
-  const [growthMode, setGrowthMode] = useState<GrowthComparisonMode>('YOY_JAN_AUG');
-  const [growthSpecificMonth, setGrowthSpecificMonth] = useState<number>(8);
+  const [growthMode, setGrowthMode] = useState<GrowthComparisonMode>('YOY_JAN_OCT');
+  const [growthSpecificMonth, setGrowthSpecificMonth] = useState<number>(10);
   const [growthSearchCity, setGrowthSearchCity] = useState<string>('');
   const [isGrowthSectionExpanded, setIsGrowthSectionExpanded] = useState<boolean>(true);
   const [initialMapMode, setInitialMapMode] = useState<'DELIVERIES' | 'GROWTH'>('DELIVERIES');
@@ -228,6 +229,16 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
       return 0;
     });
   }, [items, selectedYear, selectedMonth, selectedStatus, selectedCity, searchQuery, sortBy]);
+
+  // Total items in current selectedYear (before month/status/city filters)
+  const yearFilteredTotalCount = useMemo(() => {
+    if (selectedYear === 'ALL') return items.length;
+    const targetYear = selectedYear === '2026' ? 2026 : 2025;
+    return items.filter((item) => {
+      const itemYear = item.datasetYear || (item.transactionDate ? item.transactionDate.getFullYear() : 2026);
+      return itemYear === targetYear;
+    }).length;
+  }, [items, selectedYear]);
 
   // Items for Map (filtered by year, month and status)
   const mapItems = useMemo(() => {
@@ -409,8 +420,101 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
         </div>
       </div>
 
-      {/* MONTH SEPARATION / FILTER PILLS (Pilihan Bulan Transaksi Agar Tidak Nyampur) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 gopay-shadow p-3.5 sm:p-4 space-y-2.5">
+      {/* DATABASE TAHUN & BULAN TRANSAKSI (Pemisah Live 2026 & Pembanding 2025) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 gopay-shadow p-3.5 sm:p-4 space-y-3">
+        {/* Year Switcher + 2025 Live Status */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-sky-100 text-[#003B73] flex items-center justify-center shrink-0">
+              <Database className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-[#003B73] uppercase tracking-wider block">
+                Sumber Tahun Database
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Pilih database transaksi 2026 atau data pembanding 2025 (Live Tab 2)
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+              <button
+                onClick={() => {
+                  setSelectedYear('2026');
+                  setSelectedMonth('ALL');
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedYear === '2026'
+                    ? 'bg-[#003B73] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>Data 2026</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  selectedYear === '2026' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {(items2026Count ?? 0).toLocaleString()}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedYear('2025');
+                  setSelectedMonth('ALL');
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedYear === '2025'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>Pembanding 2025</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  selectedYear === '2025' ? 'bg-slate-950/15 text-slate-950' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {is2025Loading ? 'Memuat...' : (items2025Count ?? 0).toLocaleString()}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedYear('ALL');
+                  setSelectedMonth('ALL');
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedYear === 'ALL'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>Gabungan</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  selectedYear === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {items.length.toLocaleString()}
+                </span>
+              </button>
+            </div>
+
+            {onRefresh2025 && (
+              <button
+                onClick={onRefresh2025}
+                disabled={is2025Loading}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer disabled:opacity-50"
+                title="Sinkronkan ulang data pembanding 2025 dari Google Sheets Tab 2"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${is2025Loading ? 'animate-spin' : ''}`} />
+                <span>{is2025Loading ? 'Sinkron 2025...' : is2025Loaded ? '2025 Live' : 'Muat 2025'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[#003B73] text-white flex items-center justify-center shadow-2xs">
@@ -418,7 +522,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
             </div>
             <div>
               <span className="text-xs font-black text-[#003B73] uppercase tracking-wider">
-                Pilih Bulan Transaksi Customer
+                Pilih Bulan Transaksi Customer ({selectedYear === 'ALL' ? '2025 & 2026' : selectedYear})
               </span>
               <p className="text-[11px] text-slate-500">
                 Pemisah database transaksi per periode bulan agar data rapi & tidak bercampur
@@ -460,7 +564,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
               selectedMonth === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
             }`}>
-              {items.length}
+              {yearFilteredTotalCount.toLocaleString()}
             </span>
           </button>
 
@@ -482,7 +586,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
                 selectedMonth === m.key ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-600'
               }`}>
-                {m.count}
+                {m.count.toLocaleString()}
               </span>
             </button>
           ))}
@@ -515,7 +619,19 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
 
             <div className="flex items-center gap-2 flex-wrap">
               {/* Period Selector Tabs */}
-              <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/15 text-xs">
+              <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/15 text-xs flex-wrap">
+                <button
+                  onClick={() => setGrowthMode('YOY_JAN_OCT')}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    growthMode === 'YOY_JAN_OCT'
+                      ? 'bg-amber-400 text-slate-950 shadow-xs'
+                      : 'text-sky-100 hover:text-white hover:bg-white/10'
+                  }`}
+                  title="Januari - Oktober 2025 vs 2026 (10 Bulan)"
+                >
+                  ⭐ Jan - Okt (YoY)
+                </button>
+
                 <button
                   onClick={() => setGrowthMode('YOY_JAN_AUG')}
                   className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer ${
@@ -523,9 +639,9 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                       ? 'bg-amber-400 text-slate-950 shadow-xs'
                       : 'text-sky-100 hover:text-white hover:bg-white/10'
                   }`}
-                  title="Januari - Agustus 2025 vs 2026 (Data Bersih Penuh)"
+                  title="Januari - Agustus 2025 vs 2026"
                 >
-                  ⭐ Jan - Agu (YoY)
+                  Jan - Agu (YoY)
                 </button>
 
                 <button
@@ -574,6 +690,8 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                     onChange={(e) => setGrowthSpecificMonth(parseInt(e.target.value, 10))}
                     className="bg-transparent text-white font-bold text-xs focus:outline-hidden cursor-pointer"
                   >
+                    <option value={10} className="text-slate-900">Oktober</option>
+                    <option value={9} className="text-slate-900">September</option>
                     <option value={8} className="text-slate-900">Agustus</option>
                     <option value={7} className="text-slate-900">Juli</option>
                     <option value={6} className="text-slate-900">Juni</option>
@@ -582,7 +700,6 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                     <option value={3} className="text-slate-900">Maret</option>
                     <option value={2} className="text-slate-900">Februari</option>
                     <option value={1} className="text-slate-900">Januari</option>
-                    <option value={9} className="text-slate-900">September (Parsial)</option>
                   </select>
                 </div>
               )}
@@ -599,25 +716,23 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
 
           {/* Context Notice / Explanation Banner */}
           {monthlyComparison.noticeText && (
-            <div className={`px-4 py-2 border-b text-xs flex items-center justify-between gap-2 ${
-              growthMode === 'YOY_JAN_AUG'
+            <div className={`px-4 py-2 border-b text-xs flex flex-wrap items-center justify-between gap-2 ${
+              growthMode === 'YOY_JAN_OCT'
                 ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                : growthMode === 'YOY_JAN_SEP'
-                ? 'bg-amber-50 text-amber-900 border-amber-200'
                 : 'bg-sky-50 text-sky-900 border-sky-200'
             }`}>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 font-black">
-                  {growthMode === 'YOY_JAN_AUG' ? '✓ REKOMENDASI UTAMA:' : 'ℹ️ CATATAN PERIODE:'}
+                  {growthMode === 'YOY_JAN_OCT' ? '✓ PERIODE UTAMA:' : 'ℹ️ CATATAN PERIODE:'}
                 </span>
                 <span>{monthlyComparison.noticeText}</span>
               </div>
-              {growthMode === 'YOY_JAN_SEP' && (
+              {growthMode !== 'YOY_JAN_OCT' && (
                 <button
-                  onClick={() => setGrowthMode('YOY_JAN_AUG')}
-                  className="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-md text-[11px] shrink-0 cursor-pointer"
+                  onClick={() => setGrowthMode('YOY_JAN_OCT')}
+                  className="px-2.5 py-0.5 bg-sky-200 hover:bg-sky-300 text-sky-950 font-bold rounded-md text-[11px] shrink-0 cursor-pointer"
                 >
-                  Gunakan Jan-Agu
+                  Gunakan Jan-Okt (Utama)
                 </button>
               )}
             </div>
@@ -734,7 +849,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                               </span>
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              <strong>{stat.currentCount.toLocaleString()} DO</strong> (2026) vs <strong>{stat.prevCount.toLocaleString()} DO</strong> (2025)
+                              <strong>{stat.currentCount.toLocaleString()} DO</strong> ({monthlyComparison.currentMonthLabel}) vs <strong>{stat.prevCount.toLocaleString()} DO</strong> ({monthlyComparison.prevMonthLabel})
                               <span className="text-red-600 font-bold ml-1">({stat.diff} DO)</span>
                             </div>
                           </div>
@@ -798,7 +913,7 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                               </span>
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              <strong>{stat.currentCount.toLocaleString()} DO</strong> (2026) vs <strong>{stat.prevCount.toLocaleString()} DO</strong> (2025)
+                              <strong>{stat.currentCount.toLocaleString()} DO</strong> ({monthlyComparison.currentMonthLabel}) vs <strong>{stat.prevCount.toLocaleString()} DO</strong> ({monthlyComparison.prevMonthLabel})
                               <span className="text-emerald-700 font-bold ml-1">(+{stat.diff} DO)</span>
                             </div>
                           </div>
@@ -1108,7 +1223,14 @@ export const CustomerDatabaseTab: React.FC<CustomerDatabaseTabProps> = ({
                         }`}
                       >
                         <td className="py-3 px-3.5 font-mono font-extrabold text-[#003B73] whitespace-nowrap">
-                          #{item.receiptNo}
+                          <div className="flex items-center gap-1.5">
+                            <span>#{item.receiptNo}</span>
+                            {item.datasetYear === 2025 && (
+                              <span className="text-[9px] bg-amber-100 text-amber-800 font-black px-1.5 py-0.2 rounded-md border border-amber-200">
+                                2025
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-3.5 font-bold text-slate-900 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">

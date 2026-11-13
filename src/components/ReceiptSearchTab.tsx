@@ -75,7 +75,7 @@ export const ReceiptSearchTab: React.FC<ReceiptSearchTabProps> = ({
       }
     }
 
-    // 3. Fallback match by Customer Name or Phone
+    // 3. Fallback match by Customer Name or Phone in 2026 groupedByReceipt
     for (const group of groupedByReceipt.values()) {
       if (
         group.customerName.toLowerCase().includes(cleanKey) ||
@@ -85,6 +85,42 @@ export const ReceiptSearchTab: React.FC<ReceiptSearchTabProps> = ({
         setActiveReceipt(group);
         return;
       }
+    }
+
+    // 4. Fallback search in allItems (includes 2025 comparison database)
+    const matchedItem =
+      allItems.find((i) => i.receiptNo.toLowerCase() === cleanKey) ||
+      allItems.find((i) => i.receiptNo.toLowerCase().includes(cleanKey)) ||
+      allItems.find(
+        (i) =>
+          i.customerName.toLowerCase().includes(cleanKey) ||
+          i.bestPhone.toLowerCase().includes(cleanKey) ||
+          i.memberNo.toLowerCase().includes(cleanKey)
+      );
+
+    if (matchedItem) {
+      const sameReceiptItems = allItems.filter(
+        (i) => i.receiptNo.toLowerCase() === matchedItem.receiptNo.toLowerCase()
+      );
+      setActiveReceipt({
+        receiptNo: matchedItem.receiptNo,
+        customerName: matchedItem.customerName,
+        memberNo: matchedItem.memberNo,
+        address: matchedItem.address,
+        cityName: matchedItem.cityName,
+        bestPhone: matchedItem.bestPhone,
+        waLink: matchedItem.waLink,
+        isPickupAtStore: matchedItem.isPickupAtStore,
+        items: sameReceiptItems,
+        overallStatus: matchedItem.status,
+        nearestInstallDate: matchedItem.installScheduleDate,
+        earliestDeliveryDate: matchedItem.deliveryScheduleDate,
+        hasUrgentH1: matchedItem.isUrgentTomorrow,
+        latitude: matchedItem.latitude,
+        longitude: matchedItem.longitude,
+        hasValidCoords: matchedItem.hasValidCoords,
+      });
+      return;
     }
 
     // Not found

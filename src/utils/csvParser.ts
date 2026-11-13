@@ -47,7 +47,39 @@ export async function fetchAndParseDeliveryData(): Promise<{
           const items: DeliveryItem[] = [];
           const citySet = new Set<string>();
 
-          // Process rows starting from index 1 (row 0 is header)
+          // Pass 1: Pre-index Format B rows (which carry exact lg/lt) & collect existing Format A/C receive_no keys
+          const formatBMap = new Map<string, { lg: string; lt: string; phone: string; isPickupAtStore: boolean; installNo: string }>();
+          const formatACKeys = new Set<string>();
+
+          for (let index = 1; index < rawRows.length; index++) {
+            const row = rawRows[index];
+            if (!row || row.length === 0) continue;
+            const col0 = (row[0] || '').trim();
+            const col1 = (row[1] || '').trim();
+            const col2 = (row[2] || '').trim();
+            if (col0.toLowerCase().includes('company') || col1.toLowerCase().includes('receive')) continue;
+
+            const val0 = parseFloat(col0);
+            const val1 = parseFloat(col1);
+            if (val0 > 90 && val0 < 145 && val1 < 10 && val1 > -15) {
+              const rec = (row[3] || '').trim();
+              if (rec) {
+                formatBMap.set(rec, {
+                  lg: col0,
+                  lt: col1,
+                  phone: (row[12] || '').trim(),
+                  isPickupAtStore: (row[15] || '').trim() === '1',
+                  installNo: (row[14] || '').trim(),
+                });
+              }
+            } else {
+              if (col1) formatACKeys.add(col1);
+            }
+          }
+
+          const seenReceiveNos = new Set<string>();
+
+          // Pass 2: Process rows starting from index 1 (row 0 is header)
           for (let index = 1; index < rawRows.length; index++) {
             const row = rawRows[index];
             if (!row || row.length === 0) continue;
@@ -86,10 +118,14 @@ export async function fetchAndParseDeliveryData(): Promise<{
 
             if (val0 > 90 && val0 < 145 && val1 < 10 && val1 > -15) {
               // Format B: Longitude & Latitude in first two columns
+              receiveNo = (row[3] || '').trim();
+              // Skip Format B duplicate if Format A/C exists for this receiveNo (coords are merged into C)
+              if (receiveNo && formatACKeys.has(receiveNo)) {
+                continue;
+              }
               lg = col0;
               lt = col1;
               companyCode = col2 || '35';
-              receiveNo = (row[3] || '').trim();
               transactionNo = (row[4] || '').trim();
               transDateRaw = (row[5] || '').trim();
               cardId = (row[6] || '').trim();
@@ -112,15 +148,31 @@ export async function fetchAndParseDeliveryData(): Promise<{
               customerName = (row[5] || '').trim();
               address = [row[6], row[7]].filter(Boolean).map(s => s.trim()).join(' ');
               rawCity = (row[8] || '').trim();
-              phone = (row[9] || row[14] || '').trim();
+              const rawPhoneC9 = (row[9] || '').trim();
+              const rawPhoneC14 = (row[14] || '').trim();
+              phone = rawPhoneC9.length >= 7 ? rawPhoneC9 : (rawPhoneC14.length >= 7 ? rawPhoneC14 : rawPhoneC9);
               shippingNotes = (row[10] || '').trim();
               deliveryScheduleRaw = (row[11] || '').trim();
-              installScheduleRaw = (row[12] || '').trim();
-              installerPoolId = (row[14] || '').trim();
+              const rawInstallC12 = (row[12] || '').trim();
+              installScheduleRaw = (rawInstallC12 && rawInstallC12 !== '0' && rawInstallC12 !== '1' && rawInstallC12.length > 4)
+                ? rawInstallC12
+                : deliveryScheduleRaw;
+              installerPoolId = rawPhoneC14;
               lt = (row[17] || '').trim();
-              lg = (row[18] && parseFloat(row[18]) > 90) ? row[18].trim() : '';
-              isPickupAtStore = (row[19] || '').trim() === '1';
+              lg = (row[18] && parseFloat(row[18]) > 90 && parseFloat(row[18]) < 145) ? row[18].trim() : '';
+              installNo = (row[18] && !lg) ? row[18].trim() : '';
+              isPickupAtStore = (row[19] || '').trim() === '1' || (row[20] || '').trim() === '1';
               addressNotes = (row[21] || '').trim();
+
+              // Enrich coordinates & pickup/installNo from matching Format B row if available
+              const matchedB = receiveNo ? formatBMap.get(receiveNo) : undefined;
+              if (matchedB) {
+                if (!lg && matchedB.lg) lg = matchedB.lg;
+                if (!lt && matchedB.lt) lt = matchedB.lt;
+                if (!phone && matchedB.phone) phone = matchedB.phone;
+                if (!installNo && matchedB.installNo) installNo = matchedB.installNo;
+                if (matchedB.isPickupAtStore) isPickupAtStore = true;
+              }
             } else {
               // Format A (Standard)
               companyCode = col0 || '35';
@@ -146,6 +198,14 @@ export async function fetchAndParseDeliveryData(): Promise<{
             // Skip empty rows
             if (!receiveNo && !customerName && !transactionNo) {
               continue;
+            }
+
+            // Prevent exact duplicate receive_no entries
+            if (receiveNo) {
+              if (seenReceiveNos.has(receiveNo)) {
+                continue;
+              }
+              seenReceiveNos.add(receiveNo);
             }
 
             const cityName = cleanCityName(rawCity, address);
@@ -353,6 +413,7 @@ export async function fetchAndParse2025Data(): Promise<{
           const rawRows = results.data;
           const items: DeliveryItem[] = [];
           const cityMonthCounts: Record<string, Record<number, number>> = {};
+          const seenReceiveNos2025 = new Set<string>();
 
           for (let index = 1; index < rawRows.length; index++) {
             const row = rawRows[index];
@@ -381,6 +442,10 @@ export async function fetchAndParse2025Data(): Promise<{
             const isPickupAtStore = (row[19] || '').trim() === '1';
 
             if (!receiveNo && !custName) continue;
+            if (receiveNo) {
+              if (seenReceiveNos2025.has(receiveNo)) continue;
+              seenReceiveNos2025.add(receiveNo);
+            }
 
             const cityName = cleanCityName(rawCity, address);
 

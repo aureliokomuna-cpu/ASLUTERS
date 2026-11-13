@@ -13,9 +13,9 @@ export interface AreaGrowthStat {
 }
 
 export type GrowthComparisonMode = 
-  | 'YOY_JAN_AUG'      // Jan - Agu 2025 vs Jan - Agu 2026 (Rekomendasi Utama)
-  | 'YOY_MAY_AUG'      // Mei - Agu 2025 vs Mei - Agu 2026 (Periode Penuh Berjalan)
-  | 'YOY_JAN_SEP'      // Jan - Sep 2025 vs Jan - Sep 2026 (YTD Kumulatif)
+  | 'YOY_JAN_OCT'      // Jan - Okt 2025 vs Jan - Okt 2026 (Utama)
+  | 'YOY_JAN_SEP'      // Jan - Sep 2025 vs Jan - Sep 2026 (YTD 9 Bulan)
+  | 'YOY_JAN_AUG'      // Jan - Agu 2025 vs Jan - Agu 2026 (8 Bulan)
   | 'YOY_MONTH'        // Bulan Spesifik YoY (e.g. Agustus 2025 vs 2026)
   | 'MOM_MONTH';       // Bulan ke Bulan MoM (e.g. Agustus 2026 vs Juli 2026)
 
@@ -58,11 +58,26 @@ export const CITY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   'Pandeglang': { lat: -6.3084, lng: 106.1064 },
   'Cianjur': { lat: -6.8222, lng: 107.1394 },
   'Sukabumi kota': { lat: -6.9277, lng: 106.9299 },
+  'Cirebon kota': { lat: -6.7320, lng: 108.5523 },
   'Surabaya': { lat: -7.2575, lng: 112.7521 },
+  'Malang kota': { lat: -7.9666, lng: 112.6326 },
   'Semarang kota': { lat: -6.9667, lng: 110.4167 },
+  'Yogyakarta': { lat: -7.7956, lng: 110.3695 },
+  'Sleman': { lat: -7.7167, lng: 110.3500 },
+  'Bantul': { lat: -7.8833, lng: 110.3333 },
+  'Salatiga': { lat: -7.3305, lng: 110.5084 },
+  'Magelang kota': { lat: -7.4706, lng: 110.2178 },
   'Denpasar': { lat: -8.6705, lng: 115.2126 },
   'Badung': { lat: -8.5833, lng: 115.1833 },
   'Banyumas': { lat: -7.5144, lng: 109.2941 },
+  'Deli Serdang': { lat: 3.5500, lng: 98.8500 },
+  'Medan': { lat: 3.5952, lng: 98.6722 },
+  'Palembang': { lat: -2.9761, lng: 104.7754 },
+  'Pekanbaru': { lat: 0.5071, lng: 101.4478 },
+  'Makassar': { lat: -5.1477, lng: 119.4327 },
+  'Banjarmasin': { lat: -3.3194, lng: 114.5908 },
+  'Samarinda': { lat: -0.5022, lng: 117.1536 },
+  'Balikpapan': { lat: -1.2379, lng: 116.8529 },
   'Manado': { lat: 1.4748, lng: 124.8428 },
   'Bandar Lampung': { lat: -5.4297, lng: 105.2625 },
   'Wilayah Lain': { lat: -6.2238, lng: 106.6525 },
@@ -198,8 +213,8 @@ export function getRecommendationForArea(cityName: string, status: 'GROWTH' | 'D
  */
 export function calculateGrowthComparison(
   items: Array<{ transactionDateRaw?: string; transactionDate?: Date | null; cityName?: string; address?: string; datasetYear?: 2025 | 2026 }>,
-  mode: GrowthComparisonMode = 'YOY_JAN_AUG',
-  specificMonth: number = 8, // Default to August for specific month YoY
+  mode: GrowthComparisonMode = 'YOY_JAN_OCT',
+  specificMonth: number = 10, // Default to October for specific month YoY
   liveStats2025?: Record<string, Record<number, number>>
 ): MonthlyComparison | null {
   // Aggregate 2026 data and 2025 data (if present in items) per city and per month
@@ -245,31 +260,31 @@ export function calculateGrowthComparison(
   const currentCityCounts: Record<string, number> = {};
   const prevCityCounts: Record<string, number> = {};
 
-  if (mode === 'YOY_MAY_AUG') {
-    // Mode Khusus: Mei - Agustus 2025 vs 2026 (4 Bulan Penuh Transaksi Aktif)
-    currentLabel = 'Mei - Agustus 2026';
-    prevLabel = 'Mei - Agustus 2025';
-    periodBadge = 'YoY: Mei-Agu (4 Bln Penuh)';
-    noticeText = 'Periode Mei-Agustus adalah 4 bulan penuh dengan pencatatan transaksi aktif di kedua tahun (2025 vs 2026).';
-    isSeptemberIncluded = false;
+  if (mode === 'YOY_JAN_OCT') {
+    // Mode Utama: Januari - Oktober 2025 vs 2026
+    currentLabel = 'Januari - Oktober 2026';
+    prevLabel = 'Januari - Oktober 2025';
+    periodBadge = 'YoY: Jan-Okt (10 Bulan)';
+    noticeText = 'Perbandingan kumulatif Januari – Oktober 2025 vs Januari – Oktober 2026 (10 bulan) secara langsung berdasarkan data transaksi Google Sheets.';
+    isSeptemberIncluded = true;
 
-    // Sum 5..8
+    // Sum 1..10
     for (const city of Object.keys(stats2026)) {
       let sum = 0;
-      for (let m = 5; m <= 8; m++) sum += (stats2026[city]?.[m] || 0);
+      for (let m = 1; m <= 10; m++) sum += (stats2026[city]?.[m] || 0);
       currentCityCounts[city] = sum;
     }
     for (const city of Object.keys(stats2025)) {
       let sum = 0;
-      for (let m = 5; m <= 8; m++) sum += (stats2025[city]?.[m] || 0);
+      for (let m = 1; m <= 10; m++) sum += (stats2025[city]?.[m] || 0);
       prevCityCounts[city] = sum;
     }
   } else if (mode === 'YOY_JAN_AUG') {
-    // Mode Utama: Januari - Agustus 2025 vs 2026
+    // Mode Kumulatif Januari - Agustus 2025 vs 2026
     currentLabel = 'Januari - Agustus 2026';
     prevLabel = 'Januari - Agustus 2025';
-    periodBadge = 'YoY: Jan-Agu (Data Penuh)';
-    noticeText = 'Periode Jan-Agu 2025 vs 2026 dipilih sebagai baseline utama agar data bersih dari anomali bulan September 2026 yang saat ini masih berjalan.';
+    periodBadge = 'YoY: Jan-Agu (8 Bulan)';
+    noticeText = 'Perbandingan kumulatif Januari – Agustus 2025 vs Januari – Agustus 2026 (8 bulan).';
     isSeptemberIncluded = false;
 
     // Sum 1..8
@@ -287,8 +302,8 @@ export function calculateGrowthComparison(
     // Mode YTD Kumulatif: Januari - September 2025 vs 2026
     currentLabel = 'Januari - September 2026';
     prevLabel = 'Januari - September 2025';
-    periodBadge = 'YoY: Jan-Sep (YTD)';
-    noticeText = 'Catatan: Data bulan September 2026 saat ini masih berjalan (cut-off transaksi tanggal 8/9 September), sehingga total transaksi September belum 1 bulan penuh.';
+    periodBadge = 'YoY: Jan-Sep (9 Bulan)';
+    noticeText = 'Perbandingan kumulatif Januari – September 2025 vs Januari – September 2026 (9 bulan).';
     isSeptemberIncluded = true;
 
     // Sum 1..9
@@ -303,7 +318,7 @@ export function calculateGrowthComparison(
       prevCityCounts[city] = sum;
     }
   } else if (mode === 'YOY_MONTH') {
-    // Mode YoY Bulan Spesifik (e.g. Agustus 2025 vs 2026)
+    // Mode YoY Bulan Spesifik (e.g. Oktober 2025 vs 2026)
     const monthNames = [
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -312,10 +327,8 @@ export function calculateGrowthComparison(
     currentLabel = `${mName} 2026`;
     prevLabel = `${mName} 2025`;
     periodBadge = `YoY: ${mName}`;
-    if (specificMonth === 9) {
-      noticeText = 'Catatan: Data transaksi September 2026 baru berjalan sebagian (cut-off 8 September 2026).';
-      isSeptemberIncluded = true;
-    }
+    noticeText = `Perbandingan langsung bulan ${mName} 2026 vs ${mName} 2025.`;
+    isSeptemberIncluded = specificMonth >= 9;
 
     for (const city of Object.keys(stats2026)) {
       currentCityCounts[city] = stats2026[city]?.[specificMonth] || 0;
@@ -413,5 +426,5 @@ export function calculateMonthlyComparison(
   _targetMonthKey?: string,
   _baselineMonthKey?: string
 ): MonthlyComparison | null {
-  return calculateGrowthComparison(items, 'YOY_JAN_AUG');
+  return calculateGrowthComparison(items, 'YOY_JAN_OCT');
 }
